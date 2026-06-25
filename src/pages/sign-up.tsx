@@ -54,8 +54,9 @@ function SignUp() {
   ];
 
   return (
-    <div className="h-screen w-screen overflow-hidden bg-[#F4F6F8] flex flex-col items-center justify-between p-4 md:p-6 font-sans text-sm">
-      <div className="max-w-5xl w-full bg-white rounded-3xl shadow-xl flex flex-col md:flex-row overflow-hidden flex-1 min-h-0">
+    <div className="h-screen w-screen overflow-hidden bg-[#F4F6F8] flex flex-col items-center p-4 md:p-6 font-sans text-sm">
+      <div className="w-full max-w-5xl flex-1 flex flex-col min-h-0">
+        <div className="w-full bg-white rounded-3xl shadow-xl flex flex-col md:flex-row overflow-hidden my-auto shrink min-h-0">
         
         {/* Left Panel */}
         <div className="bg-[#0B192C] text-white w-full md:w-1/2 p-8 lg:p-10 flex flex-col justify-between relative overflow-hidden">
@@ -93,11 +94,12 @@ function SignUp() {
         </div>
 
         {/* Right Panel */}
-        <div className="w-full md:w-1/2 px-8 py-5 lg:px-12 lg:py-6 flex flex-col justify-center bg-white relative min-h-0 overflow-y-auto">
-          <h2 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-1">Create Your Account</h2>
-          <p className="text-gray-500 mb-4 text-xs lg:text-sm">Start your insights journey with InsightEase.</p>
+        <div className="w-full md:w-1/2 bg-white relative min-h-0 overflow-y-auto flex flex-col">
+          <div className="my-auto flex flex-col w-full h-full px-8 py-5 lg:px-12 lg:py-6">
+            <h2 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-1">Create Your Account</h2>
+            <p className="text-gray-500 mb-4 text-xs lg:text-sm">Start your insights journey with InsightEase.</p>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3">
+            <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3">
             {/* Roles */}
             <div>
               <label className="block text-[11px] lg:text-xs font-bold text-gray-900 mb-1.5">I am a...</label>
@@ -282,11 +284,13 @@ function SignUp() {
               </p>
             </div>
           </form>
+          </div>
         </div>
+      </div>
       </div>
       
       {/* Footer */}
-      <footer className="w-full max-w-5xl mt-4 pt-4 border-t border-gray-200 flex flex-col md:flex-row items-center justify-between text-xs lg:text-sm text-gray-500 pb-2">
+      <footer className="w-full max-w-5xl mt-4 pt-4 border-t border-gray-200 flex flex-col md:flex-row items-center justify-between text-xs lg:text-sm text-gray-500 pb-2 shrink-0">
         <div className="flex flex-col gap-1 mb-2 md:mb-0 items-center md:items-start">
           <span className="font-bold text-gray-900 text-sm lg:text-base">InsightEase</span>
           <span className="text-[10px] lg:text-xs">© 2024 InsightEase. Guided by the Data Sherpa.</span>
