@@ -1,3 +1,4 @@
+import { useConvexAuth } from "convex/react";
 import { createBrowserRouter, Navigate } from "react-router";
 import { RouterProvider } from "react-router/dom";
 import Login from "./pages/login";
@@ -6,18 +7,20 @@ import Dashboard from "./pages/dashBoard";
 import PlaceholderPage from "./pages/placeholderPage";
 
 function App() {
+  const { isAuthenticated, isLoading} = useConvexAuth();
+
   const router = createBrowserRouter([
     {
-      path: "/",
-      element: <Login />,
+      path: "/log-in",
+      element: <Login/>,
     },
     {
       path: "/sign-up",
       element: <SignUp />,
     },
     {
-      path: "/dashboard",
-      element: <Dashboard />,
+      path: "/",
+      element: <Dashboard isAuthenticated={isAuthenticated} isLoading={isLoading}/>,
     },
     {
       path: "/analytics",
