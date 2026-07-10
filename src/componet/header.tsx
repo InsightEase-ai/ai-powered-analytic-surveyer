@@ -2,7 +2,7 @@ import { NavLink } from "react-router";
 import { Bell } from "lucide-react";
 
 const navLinks = [
-  { to: "/dashboard", label: "Dashboard" },
+  { to: "/", label: "Dashboard" },
   { to: "/survey", label: "Create Survey" },
   { to: "/analytics", label: "Analytics" },
   { to: "/insights", label: "Insights" },
@@ -14,7 +14,7 @@ function Header() {
   return (
     <header className="bg-white border-b border-gray-200">
       <div className="max-w-7xl mx-auto px-6 grid grid-cols-[auto_1fr_auto] items-center h-16 gap-6">
-        <NavLink to="/dashboard" className="font-bold text-base text-[#0B192C]">
+        <NavLink to="/" className="font-bold text-base text-[#0B192C]">
           InsightEase
         </NavLink>
 
@@ -23,7 +23,7 @@ function Header() {
             <NavLink
               key={to}
               to={to}
-              end={to === "/dashboard"}
+              end={to === "/"}
               className={({ isActive }) =>
                 `text-sm whitespace-nowrap ${
                   isActive
