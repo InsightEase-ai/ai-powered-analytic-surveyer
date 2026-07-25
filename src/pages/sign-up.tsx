@@ -81,7 +81,7 @@ function SignUp() {
       console.error(error);
       // Display the backend error message directly to the user
       setServerError(
-        error.message || "An unexpected error occurred during sign up.",
+        error instanceof Error ? error.message : "An unexpected error occurred during sign up.",
       );
     } finally {
       setLoading(false); // Turn off the loading state

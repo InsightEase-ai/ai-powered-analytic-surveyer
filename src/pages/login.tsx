@@ -51,7 +51,7 @@ function Login() {
       navigate("/"); // Send user to your homepage on success
     } catch (error) {
       console.error(error);
-      setServerError(error.message || "Invalid email or password.");
+      setServerError(error instanceof Error ? error.message : "Invalid email or password.");
     } finally {
       setLoading(false);
     }
