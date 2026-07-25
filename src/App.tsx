@@ -5,14 +5,17 @@ import Login from "./pages/login";
 import SignUp from "./pages/sign-up";
 import Dashboard from "./pages/dashBoard";
 import PlaceholderPage from "./pages/placeholderPage";
+import CreateSurvey from "./pages/createSurvey";
+import PublicTakeSurvey from "./pages/publicTakeSurvey";
+import SurveyManage from "./pages/surveyManage";
 
 function App() {
-  const { isAuthenticated, isLoading} = useConvexAuth();
+  const { isAuthenticated, isLoading } = useConvexAuth();
 
   const router = createBrowserRouter([
     {
       path: "/log-in",
-      element: <Login/>,
+      element: <Login />,
     },
     {
       path: "/sign-up",
@@ -20,7 +23,12 @@ function App() {
     },
     {
       path: "/",
-      element: <Dashboard isAuthenticated={isAuthenticated} isLoading={isLoading}/>,
+      element: (
+        <Dashboard
+          isAuthenticated={isAuthenticated}
+          isLoading={isLoading}
+        />
+      ),
     },
     {
       path: "/analytics",
@@ -28,7 +36,15 @@ function App() {
     },
     {
       path: "/survey",
-      element: <PlaceholderPage title="Survey" />,
+      element: <CreateSurvey />,
+    },
+    {
+      path: "/survey/:slug",
+      element: <PublicTakeSurvey />,
+    },
+    {
+      path: "/surveys/:id",
+      element: <SurveyManage />,
     },
     {
       path: "/report",
@@ -44,7 +60,7 @@ function App() {
     },
     {
       path: "*",
-      element: <Navigate to="/dashboard" replace />,
+      element: <Navigate to="/" replace />,
     },
   ]);
 

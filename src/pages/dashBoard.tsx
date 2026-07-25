@@ -17,17 +17,15 @@ import {
 import heroImg from "../assets/hero.png";
 import DashboardLayout from "../componet/dashboardLayout";
 import Login from "./login";
+import {
+  getResponseCount,
+  getSurveys,
+} from "../lib/surveyStorage";
 
 type DashboardProps = {
   isAuthenticated: boolean;
   isLoading: boolean;
 };
-
-const stats = [
-  { label: "Total Surveys", value: "8", trend: "2 new this week", positive: true },
-  { label: "Responses this month", value: "1,245", trend: "+12% vs last month", positive: true },
-  { label: "Avg. Completion", value: "82%", trend: "Stable trend", positive: null },
-];
 
 const insights = [
   {
@@ -108,30 +106,6 @@ const activities = [
   },
 ];
 
-const recentSurveys = [
-  {
-    name: "Product Q3 Beta",
-    responses: "432 Responses",
-    status: "ACTIVE",
-    statusColor: "bg-green-500 text-white",
-    completion: "88% Complete",
-  },
-  {
-    name: "Brand Health 2024",
-    responses: "1,200 Responses",
-    status: "COMPLETED",
-    statusColor: "bg-gray-400 text-white",
-    completion: "100% Complete",
-  },
-  {
-    name: "Customer Satisfaction Q3",
-    responses: "89 Responses",
-    status: "ACTIVE",
-    statusColor: "bg-green-500 text-white",
-    completion: "45% Complete",
-  },
-];
-
 const chatSuggestions = [
   "Why did satisfaction drop?",
   "Predict next week's responses",
@@ -139,17 +113,45 @@ const chatSuggestions = [
 ];
 
 function DashBoard({ isAuthenticated, isLoading }: DashboardProps) {
+  const RECENT_SURVEY_LIMIT = 5;
+  const allSurveys = getSurveys();
+  const totalSurveys = allSurveys.length;
+  const mySurveys = allSurveys.slice(0, RECENT_SURVEY_LIMIT);
 
-  if(isLoading){
-    return(
-      <p style={{fontSize:'3rem', textAlign: 'center'}}>Loading...</p>
-    )
+  const stats = [
+    {
+      label: "Total Surveys",
+      value: String(totalSurveys),
+      trend:
+        totalSurveys === 0
+          ? "No surveys yet"
+          : totalSurveys === 1
+            ? "1 survey in Drafts"
+            : `${totalSurveys} surveys in Drafts`,
+      positive: totalSurveys > 0 ? true : null,
+    },
+    {
+      label: "Responses this month",
+      value: "1,245",
+      trend: "+12% vs last month",
+      positive: true,
+    },
+    {
+      label: "Avg. Completion",
+      value: "82%",
+      trend: "Stable trend",
+      positive: null,
+    },
+  ];
+
+  if (isLoading) {
+    return (
+      <p style={{ fontSize: "3rem", textAlign: "center" }}>Loading...</p>
+    );
   }
 
-  if(!isAuthenticated){
-    return(
-      <Login />
-    )
+  if (!isAuthenticated) {
+    return <Login />;
   }
 
   return (
@@ -308,31 +310,58 @@ function DashBoard({ isAuthenticated, isLoading }: DashboardProps) {
                 Recent Surveys
               </h2>
               <div className="space-y-3">
-                {recentSurveys.map((survey) => (
-                  <div
-                    key={survey.name}
-                    className="border border-gray-100 rounded-xl p-4"
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <h3 className="font-semibold text-gray-900 text-sm leading-tight">
-                        {survey.name}
-                      </h3>
-                      <span
-                        className={`text-[9px] font-bold px-2 py-0.5 rounded-full shrink-0 ${survey.statusColor}`}
-                      >
-                        {survey.status}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between mt-2">
-                      <p className="text-xs text-gray-500">
-                        {survey.responses}
-                      </p>
-                      <p className="text-xs text-gray-400">
-                        {survey.completion}
-                      </p>
-                    </div>
-                  </div>
-                ))}
+                {mySurveys.length > 0 ? (
+                  mySurveys.map((survey) => {
+                      const count = getResponseCount(survey.id);
+                      const isPublished = survey.status === "published";
+                      const isClosed = survey.status === "closed";
+                      const manageable = isPublished || isClosed;
+                      return (
+                        <Link
+                          key={survey.id}
+                          to={
+                            manageable
+                              ? `/surveys/${survey.id}`
+                              : `/survey?id=${survey.id}`
+                          }
+                          className="block border border-gray-100 rounded-xl p-4 hover:border-teal-200 transition-colors"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <h3 className="font-semibold text-gray-900 text-sm leading-tight">
+                              {survey.title}
+                            </h3>
+                            <span
+                              className={`text-[9px] font-bold px-2 py-0.5 rounded-full shrink-0 ${
+                                isPublished
+                                  ? "bg-green-500 text-white"
+                                  : isClosed
+                                    ? "bg-amber-500 text-white"
+                                    : "bg-gray-400 text-white"
+                              }`}
+                            >
+                              {isPublished
+                                ? "OPEN"
+                                : isClosed
+                                  ? "COMPLETE"
+                                  : "DRAFT"}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between mt-2">
+                            <p className="text-xs text-gray-500">
+                              {count} Response{count === 1 ? "" : "s"}
+                            </p>
+                            <p className="text-xs text-gray-400">
+                              {new Date(survey.updatedAt).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </Link>
+                      );
+                    })
+                ) : (
+                  <p className="text-sm text-gray-500 text-center py-6">
+                    No surveys yet. Create one to get started.
+                  </p>
+                )}
               </div>
             </div>
 
