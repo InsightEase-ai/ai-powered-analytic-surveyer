@@ -1,5 +1,8 @@
 import { useState } from "react";
 import { Link, useParams } from "react-router";
+import { useQuery, useMutation } from "convex/react";
+import { api } from "../../convex/_generated/api";
+import type { Id } from "../../convex/_generated/dataModel";
 import {
   ArrowLeft,
   Copy,
@@ -14,12 +17,7 @@ import {
 } from "lucide-react";
 import Header from "../componet/header";
 import {
-  closeSurvey,
   getPublicSurveyUrl,
-  getResponseCount,
-  getResponsesForSurvey,
-  getSurvey,
-  reopenSurvey,
   type StoredSurvey,
 } from "../lib/surveyStorage";
 
@@ -47,14 +45,32 @@ function statusLabel(status: StoredSurvey["status"]) {
 
 function SurveyManage() {
   const { id = "" } = useParams();
-  const [survey, setSurvey] = useState<StoredSurvey | null>(() => getSurvey(id));
+  const survey = useQuery(
+    api.surveys.getSurveyById,
+    id ? { id: id as Id<"surveys"> } : "skip",
+  );
+
+  const responses =
+    useQuery(
+      api.surveys.getResponsesForSurvey,
+      survey ? { surveyId: survey._id } : "skip",
+    ) ?? [];
+  const responseCount = responses.length;
+
   const [copied, setCopied] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const closeSurveyMutation = useMutation(api.surveys.closeSurvey);
+  const reopenSurveyMutation = useMutation(api.surveys.reopenSurvey);
 
-  const responses = survey ? getResponsesForSurvey(survey.id) : [];
-  const responseCount = survey ? getResponseCount(survey.id) : 0;
+  if (survey === undefined) {
+    return (
+      <div className="min-h-dvh bg-[#F4F6F8] font-sans flex items-center justify-center">
+        <p className="text-sm text-gray-400">Loading...</p>
+      </div>
+    );
+  }
 
-  if (!survey) {
+  if (survey === null) {
     return (
       <div className="min-h-dvh bg-[#F4F6F8] font-sans">
         <Header />
@@ -76,7 +92,7 @@ function SurveyManage() {
     : null;
   const realQuestions = survey.questions.filter((q) => q.type !== "page_break");
   const surveyTitle = survey.title;
-  const surveyId = survey.id;
+  const surveyId = survey._id;
   const isPublished = survey.status === "published";
   const isClosed = survey.status === "closed";
   const canShare = (isPublished || isClosed) && !!shareUrl;
@@ -114,24 +130,22 @@ function SurveyManage() {
     await copyLink();
   }
 
-  function handleCloseSurvey() {
+  async function handleCloseSurvey() {
     setActionError(null);
-    const updated = closeSurvey(surveyId);
-    if (!updated) {
+    try {
+      await closeSurveyMutation({ id: surveyId });
+    } catch {
       setActionError("Could not close this survey. Please try again.");
-      return;
     }
-    setSurvey(updated);
   }
 
-  function handleReopenSurvey() {
+  async function handleReopenSurvey() {
     setActionError(null);
-    const updated = reopenSurvey(surveyId);
-    if (!updated) {
+    try {
+      await reopenSurveyMutation({ id: surveyId });
+    } catch {
       setActionError("Could not reopen this survey. Please try again.");
-      return;
     }
-    setSurvey(updated);
   }
 
   return (
@@ -199,7 +213,7 @@ function SurveyManage() {
               </button>
             )}
             <Link
-              to={`/survey?id=${survey.id}`}
+              to={`/survey?id=${survey._id}`}
               className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:border-teal-300 hover:text-teal-700 transition-colors"
             >
               <Pencil className="w-4 h-4" />
@@ -215,8 +229,8 @@ function SurveyManage() {
             </p>
             {isClosed && (
               <p className="text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2">
-                Link remains available, but visitors will see that this survey is
-                complete until you reopen it.
+                Link remains available, but visitors will see that this survey
+                is complete until you reopen it.
               </p>
             )}
             <div className="flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5">
@@ -296,7 +310,9 @@ function SurveyManage() {
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
           <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
             <h2 className="font-bold text-gray-900">Collected responses</h2>
-            <span className="text-xs text-gray-400">{responses.length} total</span>
+            <span className="text-xs text-gray-400">
+              {responses.length} total
+            </span>
           </div>
 
           {responses.length === 0 ? (
@@ -309,13 +325,13 @@ function SurveyManage() {
           ) : (
             <ul className="divide-y divide-gray-100">
               {responses.map((response, index) => (
-                <li key={response.id} className="px-5 py-4">
+                <li key={response._id} className="px-5 py-4">
                   <div className="flex items-center justify-between gap-3 mb-3">
                     <p className="text-sm font-semibold text-gray-900">
                       Response #{responses.length - index}
                     </p>
                     <p className="text-xs text-gray-400">
-                      {new Date(response.submittedAt).toLocaleString()}
+                      {new Date(response._creationTime).toLocaleString()}
                     </p>
                   </div>
                   <div className="space-y-2">

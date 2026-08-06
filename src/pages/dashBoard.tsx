@@ -1,4 +1,6 @@
 import { Link } from "react-router";
+import { useQuery } from "convex/react";
+import { api } from "../../convex/_generated/api";
 import {
   Plus,
   TrendingUp,
@@ -13,14 +15,12 @@ import {
   ArrowRight,
   Minus,
   Sparkles,
+  RotateCcw,
 } from "lucide-react";
 import heroImg from "../assets/hero.png";
 import DashboardLayout from "../componet/dashboardLayout";
 import Login from "./login";
-import {
-  getResponseCount,
-  getSurveys,
-} from "../lib/surveyStorage";
+
 
 type DashboardProps = {
   isAuthenticated: boolean;
@@ -78,33 +78,72 @@ const insights = [
   },
 ];
 
-const activities = [
-  {
+const activityConfig = {
+  survey_edited: {
     icon: Pencil,
     iconBg: "bg-teal-50",
     iconColor: "text-teal-600",
-    text: "You edited ",
-    highlight: "Annual Employee Survey",
-    time: "30 minutes ago",
+    render: (title: string) => (
+      <>
+        You edited <span className="font-semibold text-gray-900">{title}</span>
+      </>
+    ),
   },
-  {
+  survey_published: {
+    icon: Send,
+    iconBg: "bg-blue-50",
+    iconColor: "text-blue-600",
+    render: (title: string) => (
+      <>
+        You published{" "}
+        <span className="font-semibold text-gray-900">{title}</span>
+      </>
+    ),
+  },
+  survey_closed: {
+    icon: CheckCircle2,
+    iconBg: "bg-amber-50",
+    iconColor: "text-amber-600",
+    render: (title: string) => (
+      <>
+        You closed <span className="font-semibold text-gray-900">{title}</span>
+      </>
+    ),
+  },
+  survey_goal_reached: {
     icon: CheckCircle2,
     iconBg: "bg-green-50",
     iconColor: "text-green-600",
-    text: "",
-    highlight: "Customer Exit Interview",
-    suffix: " reached its goal of 500 responses",
-    time: "4 hours ago",
+    render: (title: string) => (
+      <>
+        <span className="font-semibold text-gray-900">{title}</span> reached its
+        response goal
+      </>
+    ),
   },
-  {
+  response_received: {
     icon: UserPlus,
     iconBg: "bg-gray-100",
     iconColor: "text-gray-500",
-    text: "New respondent joined ",
-    highlight: "Brand Awareness Study",
-    time: "12 hours ago",
+    render: (title: string) => (
+      <>
+        New respondent joined{" "}
+        <span className="font-semibold text-gray-900">{title}</span>
+      </>
+    ),
   },
-];
+  survey_reopened: {
+    icon: RotateCcw,
+    iconBg: "bg-teal-50",
+    iconColor: "text-teal-600",
+    render: (title: string) => (
+      <>
+        You reopened{" "}
+        <span className="font-semibold text-gray-900">{title}</span>
+      </>
+    ),
+  },
+} as const;
 
 const chatSuggestions = [
   "Why did satisfaction drop?",
@@ -113,10 +152,13 @@ const chatSuggestions = [
 ];
 
 function DashBoard({ isAuthenticated, isLoading }: DashboardProps) {
-  const RECENT_SURVEY_LIMIT = 5;
-  const allSurveys = getSurveys();
-  const totalSurveys = allSurveys.length;
-  const mySurveys = allSurveys.slice(0, RECENT_SURVEY_LIMIT);
+  const currentUser = useQuery(api.users.currentUser);
+  const name = currentUser?.name ?? "there";
+  const mySurveys = useQuery(api.surveys.recentSurveys) ?? [];
+  const totalSurveys = useQuery(api.surveys.surveyCount) ?? 0;
+  const responsesThisMonth = useQuery(api.surveys.responsesThisMonth) ?? 0;
+  const avgAnswerRate = useQuery(api.surveys.avgAnswerRate) ?? 0;
+  const recentActivity = useQuery(api.surveys.recentActivity) ?? [];
 
   const stats = [
     {
@@ -132,13 +174,13 @@ function DashBoard({ isAuthenticated, isLoading }: DashboardProps) {
     },
     {
       label: "Responses this month",
-      value: "1,245",
+      value: String(responsesThisMonth),
       trend: "+12% vs last month",
       positive: true,
     },
     {
-      label: "Avg. Completion",
-      value: "82%",
+      label: "Avg. Answer Rate",
+      value: `${avgAnswerRate}%`,
       trend: "Stable trend",
       positive: null,
     },
@@ -161,7 +203,7 @@ function DashBoard({ isAuthenticated, isLoading }: DashboardProps) {
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
           <div>
             <h1 className="text-lg font-semibold text-gray-900 leading-snug">
-              Welcome back, Julius! Ready to explore your data? I&apos;m your{" "}
+              Welcome back, {name}! Ready to explore your data? I&apos;m your{" "}
               <Link
                 to="/chatbot"
                 className="text-teal-500 font-semibold hover:text-teal-600"
@@ -267,38 +309,41 @@ function DashBoard({ isAuthenticated, isLoading }: DashboardProps) {
             </div>
 
             {/* Recent Activity — light grey container */}
+            {/* Recent Activity — light grey container */}
             <div className="bg-[#E8ECF0] rounded-2xl p-5 flex-1 flex flex-col">
               <h2 className="text-base font-bold text-gray-900 mb-4">
                 Recent Activity
               </h2>
-              <ul className="space-y-4 flex-1">
-                {activities.map((activity) => (
-                  <li
-                    key={activity.highlight + activity.time}
-                    className="flex items-start gap-3"
-                  >
-                    <div
-                      className={`w-9 h-9 rounded-full ${activity.iconBg} flex items-center justify-center shrink-0`}
-                    >
-                      <activity.icon
-                        className={`w-4 h-4 ${activity.iconColor}`}
-                      />
-                    </div>
-                    <div>
-                      <p className="text-gray-700 text-sm leading-relaxed">
-                        {activity.text}
-                        <span className="font-semibold text-gray-900">
-                          {activity.highlight}
-                        </span>
-                        {activity.suffix}
-                      </p>
-                      <p className="text-xs text-gray-400 mt-1">
-                        {activity.time}
-                      </p>
-                    </div>
-                  </li>
-                ))}
-              </ul>
+              {recentActivity.length > 0 ? (
+                <ul className="space-y-4 flex-1">
+                  {recentActivity.map((activity) => {
+                    const config = activityConfig[activity.type];
+                    return (
+                      <li key={activity._id} className="flex items-start gap-3">
+                        <div
+                          className={`w-9 h-9 rounded-full ${config.iconBg} flex items-center justify-center shrink-0`}
+                        >
+                          <config.icon
+                            className={`w-4 h-4 ${config.iconColor}`}
+                          />
+                        </div>
+                        <div>
+                          <p className="text-gray-700 text-sm leading-relaxed">
+                            {config.render(activity.surveyTitle)}
+                          </p>
+                          <p className="text-xs text-gray-400 mt-1">
+                            {new Date(activity._creationTime).toLocaleString()}
+                          </p>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : (
+                <p className="text-sm text-gray-500 text-center py-6 flex-1 flex items-center justify-center">
+                  No recent activity yet.
+                </p>
+              )}
             </div>
           </div>
 
@@ -312,51 +357,51 @@ function DashBoard({ isAuthenticated, isLoading }: DashboardProps) {
               <div className="space-y-3">
                 {mySurveys.length > 0 ? (
                   mySurveys.map((survey) => {
-                      const count = getResponseCount(survey.id);
-                      const isPublished = survey.status === "published";
-                      const isClosed = survey.status === "closed";
-                      const manageable = isPublished || isClosed;
-                      return (
-                        <Link
-                          key={survey.id}
-                          to={
-                            manageable
-                              ? `/surveys/${survey.id}`
-                              : `/survey?id=${survey.id}`
-                          }
-                          className="block border border-gray-100 rounded-xl p-4 hover:border-teal-200 transition-colors"
-                        >
-                          <div className="flex items-start justify-between gap-2">
-                            <h3 className="font-semibold text-gray-900 text-sm leading-tight">
-                              {survey.title}
-                            </h3>
-                            <span
-                              className={`text-[9px] font-bold px-2 py-0.5 rounded-full shrink-0 ${
-                                isPublished
-                                  ? "bg-green-500 text-white"
-                                  : isClosed
-                                    ? "bg-amber-500 text-white"
-                                    : "bg-gray-400 text-white"
-                              }`}
-                            >
-                              {isPublished
-                                ? "OPEN"
+                    const count = survey.responseCount;
+                    const isPublished = survey.status === "published";
+                    const isClosed = survey.status === "closed";
+                    const manageable = isPublished || isClosed;
+                    return (
+                      <Link
+                        key={survey._id}
+                        to={
+                          manageable
+                            ? `/surveys/${survey._id}`
+                            : `/survey?id=${survey._id}`
+                        }
+                        className="block border border-gray-100 rounded-xl p-4 hover:border-teal-200 transition-colors"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <h3 className="font-semibold text-gray-900 text-sm leading-tight">
+                            {survey.title}
+                          </h3>
+                          <span
+                            className={`text-[9px] font-bold px-2 py-0.5 rounded-full shrink-0 ${
+                              isPublished
+                                ? "bg-green-500 text-white"
                                 : isClosed
-                                  ? "COMPLETE"
-                                  : "DRAFT"}
-                            </span>
-                          </div>
-                          <div className="flex items-center justify-between mt-2">
-                            <p className="text-xs text-gray-500">
-                              {count} Response{count === 1 ? "" : "s"}
-                            </p>
-                            <p className="text-xs text-gray-400">
-                              {new Date(survey.updatedAt).toLocaleDateString()}
-                            </p>
-                          </div>
-                        </Link>
-                      );
-                    })
+                                  ? "bg-amber-500 text-white"
+                                  : "bg-gray-400 text-white"
+                            }`}
+                          >
+                            {isPublished
+                              ? "OPEN"
+                              : isClosed
+                                ? "COMPLETE"
+                                : "DRAFT"}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between mt-2">
+                          <p className="text-xs text-gray-500">
+                            {count} Response{count === 1 ? "" : "s"}
+                          </p>
+                          <p className="text-xs text-gray-400">
+                            {new Date(survey.updatedAt).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </Link>
+                    );
+                  })
                 ) : (
                   <p className="text-sm text-gray-500 text-center py-6">
                     No surveys yet. Create one to get started.

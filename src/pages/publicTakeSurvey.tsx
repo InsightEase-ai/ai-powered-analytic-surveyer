@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { Link, useParams } from "react-router";
+import { useQuery, useMutation } from "convex/react";
+import { api } from "../../convex/_generated/api";
 import {
   Calendar,
   Check,
@@ -7,16 +9,16 @@ import {
   Sparkles,
 } from "lucide-react";
 import {
-  getSurveyBySlug,
   isQuestionRequired,
-  isSurveyClosed,
-  submitSurveyResponse,
   type SurveyQuestion,
 } from "../lib/surveyStorage";
 
 function PublicTakeSurvey() {
   const { slug = "" } = useParams();
-  const survey = getSurveyBySlug(slug);
+  const survey = useQuery(
+    api.surveys.getSurveyBySlug,
+    slug ? { slug } : "skip",
+  );
   const questions = (survey?.questions ?? []).filter(
     (q) => q.type !== "page_break",
   );
@@ -25,8 +27,17 @@ function PublicTakeSurvey() {
   const [answers, setAnswers] = useState<Record<string, string | number>>({});
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const submitResponse = useMutation(api.surveys.submitSurveyResponse);
 
-  if (!survey) {
+  if (survey === undefined) {
+    return (
+      <div className="min-h-dvh bg-[#F4F6F8] flex items-center justify-center p-6 font-sans">
+        <p className="text-sm text-gray-400">Loading...</p>
+      </div>
+    );
+  }
+
+  if (survey === null) {
     return (
       <div className="min-h-dvh bg-[#F4F6F8] flex items-center justify-center p-6 font-sans">
         <div className="max-w-md w-full bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center">
@@ -39,7 +50,7 @@ function PublicTakeSurvey() {
     );
   }
 
-  if (isSurveyClosed(survey)) {
+  if (survey.status === "closed") {
     return (
       <div className="min-h-dvh bg-[#F4F6F8] flex items-center justify-center p-6 font-sans">
         <div className="max-w-md w-full bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center">
@@ -57,6 +68,7 @@ function PublicTakeSurvey() {
     );
   }
 
+  const activeSurvey = survey ?? null;
   const current = questions[step];
   const isLast = questions.length > 0 && step >= questions.length - 1;
 
@@ -76,11 +88,15 @@ function PublicTakeSurvey() {
     return true;
   }
 
-  function goNext() {
+  async function goNext() {
     if (!validateCurrent()) return;
     if (isLast) {
-      submitSurveyResponse(survey!.id, answers);
-      setSubmitted(true);
+      try {
+        await submitResponse({ surveyId: activeSurvey._id, answers });
+        setSubmitted(true);
+      } catch {
+        setError("Could not submit your response. Please try again.");
+      }
       return;
     }
     setStep((s) => s + 1);

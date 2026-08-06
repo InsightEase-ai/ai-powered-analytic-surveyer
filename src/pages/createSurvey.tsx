@@ -1,5 +1,8 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router";
+import { useQuery, useMutation } from "convex/react";
+import { api } from "../../convex/_generated/api";
+import type { Id } from "../../convex/_generated/dataModel";
 import {
   ListChecks,
   Star,
@@ -29,10 +32,7 @@ import {
 import Header from "../componet/header";
 import PublishSuccessModal from "../componet/publishSuccessModal";
 import {
-  createSurveyId,
-  getSurvey,
   isQuestionRequired,
-  upsertSurvey,
   type SurveyQuestion,
   type SurveyQuestionType,
 } from "../lib/surveyStorage";
@@ -126,14 +126,21 @@ function createQuestion(type: QuestionType): Question {
 
 function CreateSurvey() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [surveyId, setSurveyId] = useState(() => createSurveyId());
+  const paramId = searchParams.get("id");
+
+  const existingSurvey = useQuery(
+    api.surveys.getSurveyById,
+    paramId ? { id: paramId as Id<"surveys"> } : "skip",
+  );
   const [title, setTitle] = useState("Customer Satisfaction Survey");
   const [description, setDescription] = useState(
     "Help us improve your experience with the new Julius platform",
   );
   const [questions, setQuestions] = useState<Question[]>(INITIAL_QUESTIONS);
   const [selectedId, setSelectedId] = useState<string>("q1");
-  const [previewMode, setPreviewMode] = useState<"mobile" | "desktop">("mobile");
+  const [previewMode, setPreviewMode] = useState<"mobile" | "desktop">(
+    "mobile",
+  );
   const [previewStep, setPreviewStep] = useState(0);
   const [previewAnswers, setPreviewAnswers] = useState<
     Record<string, string | number>
@@ -156,26 +163,23 @@ function CreateSurvey() {
   const currentPreview = previewQuestions[previewStep];
   const isLastPreview =
     previewQuestions.length > 0 && previewStep >= previewQuestions.length - 1;
+  const createSurveyMutation = useMutation(api.surveys.createSurvey);
+  const updateSurveyMutation = useMutation(api.surveys.updateSurvey);
 
   useEffect(() => {
-    const paramId = searchParams.get("id");
-    if (!paramId) {
-      setHydrated(true);
-      return;
-    }
-
-    const existing = getSurvey(paramId);
-    if (existing) {
-      setSurveyId(existing.id);
-      setTitle(existing.title);
-      setDescription(existing.description);
-      setQuestions(existing.questions);
-      const first = existing.questions.find((q) => q.type !== "page_break");
+    if (paramId && existingSurvey === undefined) return; // still loading
+    if (existingSurvey) {
+      setTitle(existingSurvey.title);
+      setDescription(existingSurvey.description);
+      setQuestions(existingSurvey.questions);
+      const first = existingSurvey.questions.find(
+        (q) => q.type !== "page_break",
+      );
       setSelectedId(first?.id ?? "");
-      setLastSavedAt(existing.updatedAt);
+      setLastSavedAt(new Date(existingSurvey.updatedAt).toISOString());
     }
     setHydrated(true);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- hydrate once on mount
+  }, [existingSurvey, paramId]);
 
   useEffect(() => {
     if (!statusMessage && !statusError) return;
@@ -221,17 +225,29 @@ function CreateSurvey() {
     return null;
   }
 
-  function persist(status: "draft" | "published") {
-    const saved = upsertSurvey({
-      id: surveyId,
+  async function persist(status: "draft" | "published") {
+    if (paramId) {
+      const saved = await updateSurveyMutation({
+        id: paramId as Id<"surveys">,
+        title: title.trim(),
+        description: description.trim(),
+        questions,
+        status,
+      });
+      if (saved) setLastSavedAt(new Date(saved.updatedAt).toISOString());
+      return saved;
+    }
+
+    const saved = await createSurveyMutation({
       title: title.trim(),
       description: description.trim(),
       questions,
       status,
     });
-    setSurveyId(saved.id);
-    setLastSavedAt(saved.updatedAt);
-    setSearchParams({ id: saved.id }, { replace: true });
+    if (saved) {
+      setLastSavedAt(new Date(saved.updatedAt).toISOString());
+      setSearchParams({ id: saved._id }, { replace: true });
+    }
     return saved;
   }
 
@@ -246,9 +262,7 @@ function CreateSurvey() {
     setSaving("draft");
     setStatusError(null);
     try {
-      // Brief delay so the UI can show saving state
-      await new Promise((r) => setTimeout(r, 250));
-      persist("draft");
+      await persist("draft");
       setStatusMessage("Draft saved.");
     } catch {
       setStatusError("Could not save draft. Please try again.");
@@ -268,9 +282,8 @@ function CreateSurvey() {
     setSaving("publish");
     setStatusError(null);
     try {
-      await new Promise((r) => setTimeout(r, 250));
-      const saved = persist("published");
-      if (!saved.publicSlug) {
+      const saved = await persist("published");
+      if (!saved || !saved.publicSlug) {
         setStatusError("Could not generate a public link. Please try again.");
         return;
       }
@@ -278,7 +291,7 @@ function CreateSurvey() {
       setPublishModal({
         slug: saved.publicSlug,
         title: saved.title,
-        id: saved.id,
+        id: saved._id,
       });
     } catch {
       setStatusError("Could not publish survey. Please try again.");
@@ -423,31 +436,29 @@ function CreateSurvey() {
 
         {q.type === "multiple_choice" && (
           <div className="space-y-2">
-            {q.options
-              ?.filter(Boolean)
-              .map((option) => (
-                <button
-                  key={option}
-                  type="button"
-                  onClick={() => setAnswer(q.id, option)}
-                  className={`w-full flex items-center gap-2.5 rounded-lg border px-2.5 py-2 text-left text-[11px] transition-colors ${
-                    answer === option
-                      ? "border-teal-400 bg-teal-50 text-teal-800"
-                      : "border-gray-200 text-gray-600 hover:border-gray-300"
+            {q.options?.filter(Boolean).map((option) => (
+              <button
+                key={option}
+                type="button"
+                onClick={() => setAnswer(q.id, option)}
+                className={`w-full flex items-center gap-2.5 rounded-lg border px-2.5 py-2 text-left text-[11px] transition-colors ${
+                  answer === option
+                    ? "border-teal-400 bg-teal-50 text-teal-800"
+                    : "border-gray-200 text-gray-600 hover:border-gray-300"
+                }`}
+              >
+                <span
+                  className={`w-3.5 h-3.5 rounded-full border-2 shrink-0 flex items-center justify-center ${
+                    answer === option ? "border-teal-500" : "border-gray-300"
                   }`}
                 >
-                  <span
-                    className={`w-3.5 h-3.5 rounded-full border-2 shrink-0 flex items-center justify-center ${
-                      answer === option ? "border-teal-500" : "border-gray-300"
-                    }`}
-                  >
-                    {answer === option && (
-                      <span className="w-1.5 h-1.5 rounded-full bg-teal-500" />
-                    )}
-                  </span>
-                  {option}
-                </button>
-              ))}
+                  {answer === option && (
+                    <span className="w-1.5 h-1.5 rounded-full bg-teal-500" />
+                  )}
+                </span>
+                {option}
+              </button>
+            ))}
           </div>
         )}
 
@@ -503,6 +514,25 @@ function CreateSurvey() {
             className="w-full rounded-lg border border-gray-200 px-2.5 py-2 text-[11px] text-gray-600 outline-none focus:border-teal-400"
           />
         )}
+      </div>
+    );
+  }
+
+  if (paramId && existingSurvey === null) {
+    return (
+      <div className="h-dvh flex flex-col bg-[#F4F6F8] font-sans text-sm">
+        <Header />
+        <div className="flex-1 flex items-center justify-center p-6">
+          <div className="max-w-md w-full bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center">
+            <h1 className="text-xl font-bold text-gray-900">
+              Survey not found
+            </h1>
+            <p className="text-sm text-gray-500 mt-2">
+              This survey doesn&apos;t exist, or you don&apos;t have access to
+              it.
+            </p>
+          </div>
+        </div>
       </div>
     );
   }
@@ -858,17 +888,14 @@ function CreateSurvey() {
 
                 {question.type === "rating" && (
                   <div className="flex items-center gap-2 flex-wrap">
-                    {Array.from(
-                      { length: question.ratingMax ?? 5 },
-                      (_, i) => (
-                        <div
-                          key={i}
-                          className="w-10 h-10 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center text-sm font-medium"
-                        >
-                          {i + 1}
-                        </div>
-                      ),
-                    )}
+                    {Array.from({ length: question.ratingMax ?? 5 }, (_, i) => (
+                      <div
+                        key={i}
+                        className="w-10 h-10 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center text-sm font-medium"
+                      >
+                        {i + 1}
+                      </div>
+                    ))}
                   </div>
                 )}
 
