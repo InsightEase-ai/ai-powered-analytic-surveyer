@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router";
+import { useQuery } from "convex/react";
+import { api } from "../../convex/_generated/api";
 import { Bell, ChevronDown, FileText, Trash2 } from "lucide-react";
 import {
   deleteSurvey,
@@ -12,8 +14,6 @@ const navLinks = [
   { to: "/", label: "Dashboard" },
   { to: "/survey", label: "Create Survey" },
   { to: "/analytics", label: "Analytics" },
-  { to: "/insights", label: "Insights" },
-  { to: "/report", label: "Reports" },
   { to: "/chatbot", label: "Chatbot" },
 ];
 
@@ -39,7 +39,7 @@ function statusClass(status: SurveyStatus) {
   }
 }
 
-function surveyPath(survey: StoredSurvey) {
+function surveyPath(survey: { id: string; status?: string }) {
   if (survey.status === "draft") return `/survey?id=${survey.id}`;
   return `/surveys/${survey.id}`;
 }
@@ -47,16 +47,33 @@ function surveyPath(survey: StoredSurvey) {
 function Header() {
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [surveys, setSurveys] = useState<StoredSurvey[]>([]);
+  const [localSurveys, setLocalSurveys] = useState<StoredSurvey[]>([]);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  // Fetch real surveys from Convex DB
+  const convexSurveys = useQuery(api.surveys.listSurveys) ?? [];
+
   function refreshSurveys() {
-    setSurveys(getSurveys().slice(0, 5));
+    setLocalSurveys(getSurveys().slice(0, 5));
   }
 
   useEffect(() => {
     refreshSurveys();
   }, []);
+
+  // Merge Convex surveys with local draft surveys
+  const combinedSurveys: StoredSurvey[] = [
+    ...convexSurveys.map((s) => ({
+      id: s._id,
+      title: s.title,
+      description: s.description ?? "",
+      status: (s.status ?? "published") as SurveyStatus,
+      createdAt: new Date(s._creationTime).toISOString(),
+      updatedAt: new Date(s.updatedAt).toISOString(),
+      questions: (s.questions ?? []) as any[],
+    })),
+    ...localSurveys.filter((ls) => !convexSurveys.some((cs) => cs._id === ls.id)),
+  ];
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -135,9 +152,9 @@ function Header() {
               aria-haspopup="menu"
             >
               Drafts
-              {surveys.length > 0 && (
+              {combinedSurveys.length > 0 && (
                 <span className="ml-0.5 inline-flex items-center justify-center min-w-5 h-5 px-1 rounded-full bg-teal-50 text-teal-700 text-[10px] font-bold">
-                  {surveys.length}
+                  {combinedSurveys.length}
                 </span>
               )}
               <ChevronDown
@@ -149,7 +166,7 @@ function Header() {
 
             {menuOpen && (
               <SurveyMenu
-                surveys={surveys}
+                surveys={combinedSurveys}
                 onClose={() => setMenuOpen(false)}
                 onOpen={handleOpen}
                 onDelete={handleDelete}
@@ -161,7 +178,7 @@ function Header() {
         <div className="flex items-center justify-end gap-2 sm:gap-3">
           <div className="lg:hidden">
             <MobileSurveysMenu
-              surveys={surveys}
+              surveys={combinedSurveys}
               onRefresh={refreshSurveys}
               onOpen={handleOpen}
               onDelete={handleDelete}

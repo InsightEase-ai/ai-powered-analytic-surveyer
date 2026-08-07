@@ -5,6 +5,7 @@ import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import {
   ArrowLeft,
+  BarChart3,
   Copy,
   Check,
   ExternalLink,
@@ -192,6 +193,13 @@ function SurveyManage() {
             )}
           </div>
           <div className="flex flex-wrap items-center gap-2 shrink-0">
+            <Link
+              to={`/analytics?id=${survey._id}`}
+              className="inline-flex items-center gap-2 rounded-xl bg-[#0B192C] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#152a40] transition-colors shadow-sm"
+            >
+              <BarChart3 className="w-4 h-4 text-teal-400" />
+              View Analytics
+            </Link>
             {isPublished && (
               <button
                 type="button"

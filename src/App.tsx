@@ -8,6 +8,8 @@ import PlaceholderPage from "./pages/placeholderPage";
 import CreateSurvey from "./pages/createSurvey";
 import PublicTakeSurvey from "./pages/publicTakeSurvey";
 import SurveyManage from "./pages/surveyManage";
+import AnalyticsPage from "./pages/analyticsPage";
+import ChatbotPage from "./pages/chatbotPage";
 
 function App() {
   const { isAuthenticated, isLoading } = useConvexAuth();
@@ -32,7 +34,7 @@ function App() {
     },
     {
       path: "/analytics",
-      element: <PlaceholderPage title="Analytics" />,
+      element: <AnalyticsPage />,
     },
     {
       path: "/survey",
@@ -56,7 +58,7 @@ function App() {
     },
     {
       path: "/chatbot",
-      element: <PlaceholderPage title="Chatbot" />,
+      element: <ChatbotPage />,
     },
     {
       path: "*",

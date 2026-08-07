@@ -33,6 +33,21 @@ export const recentSurveys = query({
   },
 });
 
+export const listSurveys = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return [];
+
+    const surveys = await ctx.db
+      .query("surveys")
+      .withIndex("by_owner", (q) => q.eq("ownerId", userId))
+      .collect();
+
+    return surveys.sort((a, b) => b.updatedAt - a.updatedAt);
+  },
+});
+
 export const surveyCount = query({
   args: {},
   handler: async (ctx) => {
