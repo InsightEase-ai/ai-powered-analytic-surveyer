@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect } from "react";
-import { useQuery } from "convex/react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
+import { useQuery, useAction } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import Header from "../componet/header";
 import { Send, Bot, User, Sparkles, ChevronDown } from "lucide-react";
@@ -12,7 +12,12 @@ interface Message {
 }
 
 export default function ChatbotPage() {
-  const allSurveys = useQuery(api.surveys.listSurveys) ?? [];
+  const surveysResult = useQuery(api.surveys.listSurveys);
+
+  const allSurveys = useMemo(() => surveysResult ?? [], [surveysResult]);
+
+  const askGemini = useAction(api.chatbot.askGemini);
+
   const [selectedSurveyId, setSelectedSurveyId] = useState<string>("");
 
   useEffect(() => {
@@ -22,7 +27,59 @@ export default function ChatbotPage() {
   }, [allSurveys, selectedSurveyId]);
 
   const activeSurvey = allSurveys.find((s) => s._id === selectedSurveyId);
-  const surveyTitle = activeSurvey?.title || "Customer Satisfaction Survey";
+
+  const responsesResult = useQuery(
+    api.surveys.getResponsesForSurvey,
+    activeSurvey ? { surveyId: activeSurvey._id } : "skip",
+  );
+  const realResponses = useMemo(() => responsesResult ?? [], [responsesResult]);
+
+  const surveyContext = useMemo(() => {
+    if (!activeSurvey) return undefined;
+
+    const realQuestions = activeSurvey.questions.filter(
+      (q) => q.type !== "page_break",
+    );
+    const totalResponses = realResponses.length;
+
+    const questionSummaries = realQuestions.map((q) => {
+      const answered = realResponses.filter(
+        (r) => r.answers[q.id] !== undefined && r.answers[q.id] !== "",
+      );
+
+      if (answered.length === 0) {
+        return `- "${q.title}" (${q.type}): no responses yet.`;
+      }
+
+      if (
+        q.type === "multiple_choice" ||
+        q.type === "dropdown" ||
+        q.type === "rating"
+      ) {
+        const counts: Record<string, number> = {};
+        answered.forEach((r) => {
+          const val = String(r.answers[q.id]);
+          counts[val] = (counts[val] || 0) + 1;
+        });
+        const breakdown = Object.entries(counts)
+          .sort(([, a], [, b]) => b - a)
+          .map(([option, count]) => `${option}: ${count}`)
+          .join(", ");
+        return `- "${q.title}" (${q.type}, ${answered.length} answers): ${breakdown}.`;
+      }
+
+      // long_text (open-ended) — include actual respondent answers
+      const sampleAnswers = answered
+        .slice(0, 20)
+        .map((r) => `"${String(r.answers[q.id]).trim()}"`)
+        .join("; ");
+      return `- "${q.title}" (${q.type}, ${answered.length} answers): ${sampleAnswers}`;
+    });
+
+    return `Survey title: "${activeSurvey.title}". Description: "${activeSurvey.description || "none"}". Status: ${activeSurvey.status}. Total responses: ${totalResponses}.\n\nQuestion breakdown:\n${questionSummaries.join("\n")}`;
+  }, [activeSurvey, realResponses]);
+
+  const surveyTitle = activeSurvey?.title ?? "No survey selected";
 
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -45,7 +102,7 @@ export default function ChatbotPage() {
     scrollToBottom();
   }, [messages, isTyping]);
 
-  const handleSend = (e?: React.FormEvent) => {
+  const handleSend = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!input.trim()) return;
 
@@ -54,40 +111,42 @@ export default function ChatbotPage() {
       id: `usr-${Date.now()}`,
       sender: "user",
       text: userMsgText,
-      timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      timestamp: new Date().toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
     };
 
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
     setIsTyping(true);
 
-    // Simulate text-only AI insight response tailored to survey data
-    setTimeout(() => {
-      let botResponse = "";
-      const lower = userMsgText.toLowerCase();
-
-      if (lower.includes("nps") || lower.includes("satisfaction") || lower.includes("score")) {
-        botResponse = `Based on current survey records for "${surveyTitle}", the overall satisfaction rate remains positive at 87%. Over 58% of respondents are Promoters, highlighting high satisfaction with recent performance stability.`;
-      } else if (lower.includes("churn") || lower.includes("risk") || lower.includes("drop")) {
-        botResponse = `Key factors impacting satisfaction stem from mentions of "slow loading times" and mobile responsive layout friction. Addressing these two friction points could reduce churn risk by up to 18%.`;
-      } else if (lower.includes("keyword") || lower.includes("feedback") || lower.includes("trend")) {
-        botResponse = `The top recurring positive keywords in open feedback are "intuitive UI", "fast responses", and "helpful insights". The main area identified for improvement is report customization.`;
-      } else if (lower.includes("predict") || lower.includes("next month")) {
-        botResponse = `Predictive analysis projects a 12% to 15% increase in total response submissions next month if current engagement reminders are maintained.`;
-      } else {
-        botResponse = `Analyzing feedback for "${surveyTitle}": Data shows steady user engagement across mid-week submissions, with data analysts and product managers representing over 60% of completed responses. Let me know if you would like specific metrics or qualitative explanations.`;
-      }
-
+    try {
+      const reply = await askGemini({ message: userMsgText, surveyContext });
       const botMessage: Message = {
         id: `bot-${Date.now()}`,
         sender: "bot",
-        text: botResponse,
-        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        text: reply,
+        timestamp: new Date().toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
       };
-
       setMessages((prev) => [...prev, botMessage]);
+    } catch {
+      const errorMessage: Message = {
+        id: `bot-error-${Date.now()}`,
+        sender: "bot",
+        text: "Sorry, I couldn't get a response right now. Please try again.",
+        timestamp: new Date().toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
       setIsTyping(false);
-    }, 900);
+    }
   };
 
   const suggestedQuestions = [
@@ -125,7 +184,7 @@ export default function ChatbotPage() {
                   </option>
                 ))
               ) : (
-                <option value="">Customer Satisfaction Survey</option>
+                <option value="">No surveys yet</option>
               )}
             </select>
             <ChevronDown className="w-4 h-4 text-gray-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -172,10 +231,16 @@ export default function ChatbotPage() {
                       : "bg-teal-50 text-teal-600 border border-teal-100"
                   }`}
                 >
-                  {msg.sender === "user" ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
+                  {msg.sender === "user" ? (
+                    <User className="w-4 h-4" />
+                  ) : (
+                    <Bot className="w-4 h-4" />
+                  )}
                 </div>
 
-                <div className={`max-w-xl space-y-1 ${msg.sender === "user" ? "text-right" : "text-left"}`}>
+                <div
+                  className={`max-w-xl space-y-1 ${msg.sender === "user" ? "text-right" : "text-left"}`}
+                >
                   <div
                     className={`inline-block px-4 py-3 rounded-2xl text-xs sm:text-sm leading-relaxed ${
                       msg.sender === "user"
@@ -185,7 +250,9 @@ export default function ChatbotPage() {
                   >
                     {msg.text}
                   </div>
-                  <p className="text-[10px] text-gray-400 px-1">{msg.timestamp}</p>
+                  <p className="text-[10px] text-gray-400 px-1">
+                    {msg.timestamp}
+                  </p>
                 </div>
               </div>
             ))}
@@ -227,7 +294,10 @@ export default function ChatbotPage() {
           </div>
 
           {/* Pure Text Input Controls */}
-          <form onSubmit={handleSend} className="p-3.5 bg-white border-t border-gray-100 flex items-center gap-3 shrink-0">
+          <form
+            onSubmit={handleSend}
+            className="p-3.5 bg-white border-t border-gray-100 flex items-center gap-3 shrink-0"
+          >
             <input
               type="text"
               value={input}

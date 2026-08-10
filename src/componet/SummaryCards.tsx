@@ -1,5 +1,5 @@
 import React from "react";
-import { Users, CheckCircle2, Clock, HelpCircle, Calendar } from "lucide-react";
+import { Users, CheckCircle2, HelpCircle, Calendar } from "lucide-react";
 import type { OverallAnalyticsStats } from "../lib/mockAnalyticsData";
 
 interface SummaryCardsProps {
@@ -17,20 +17,12 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({ stats }) => {
       iconColor: "text-teal-600",
     },
     {
-      label: "Completion Rate",
+      label: "Answer Rate",
       value: `${stats.completionRate}%`,
-      subtext: "Above industry avg (72%)",
+      subtext: "Average questions answered per response",
       icon: CheckCircle2,
       bgColor: "bg-emerald-50",
       iconColor: "text-emerald-600",
-    },
-    {
-      label: "Avg Completion Time",
-      value: stats.avgCompletionTime,
-      subtext: "Fast respondent speed",
-      icon: Clock,
-      bgColor: "bg-blue-50",
-      iconColor: "text-blue-600",
     },
     {
       label: "Number of Questions",
@@ -43,7 +35,9 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({ stats }) => {
     {
       label: "Last Response Date",
       value: stats.lastResponseDate.split(" at ")[0],
-      subtext: stats.lastResponseDate.split(" at ")[1] ? `at ${stats.lastResponseDate.split(" at ")[1]}` : "Recent activity",
+      subtext: stats.lastResponseDate.split(" at ")[1]
+        ? `at ${stats.lastResponseDate.split(" at ")[1]}`
+        : "Recent activity",
       icon: Calendar,
       bgColor: "bg-amber-50",
       iconColor: "text-amber-600",

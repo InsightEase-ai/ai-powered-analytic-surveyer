@@ -12,7 +12,6 @@ import {
   UserPlus,
   Bot,
   Send,
-  ArrowRight,
   Minus,
   Sparkles,
   RotateCcw,

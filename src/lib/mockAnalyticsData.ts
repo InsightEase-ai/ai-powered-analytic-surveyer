@@ -1,8 +1,7 @@
 
 export interface OverallAnalyticsStats {
   totalResponses: number;
-  completionRate: number; 
-  avgCompletionTime: string;
+  completionRate: number;
   numberOfQuestions: number;
   lastResponseDate: string;
 }
@@ -101,7 +100,6 @@ export const MOCK_ANALYTICS_DATA: Record<string, SurveyAnalyticsData> = {
     stats: {
       totalResponses: 1248,
       completionRate: 87.4,
-      avgCompletionTime: "3m 42s",
       numberOfQuestions: 12,
       lastResponseDate: "Aug 7, 2026 at 10:42 AM",
     },
@@ -145,7 +143,8 @@ export const MOCK_ANALYTICS_DATA: Record<string, SurveyAnalyticsData> = {
     barCharts: [
       {
         id: "q1_bar",
-        questionTitle: "Q1: How satisfied are you with the platform performance?",
+        questionTitle:
+          "Q1: How satisfied are you with the platform performance?",
         questionType: "Multiple Choice (Single Select)",
         totalAnswers: 1248,
         interpretation:
@@ -160,7 +159,8 @@ export const MOCK_ANALYTICS_DATA: Record<string, SurveyAnalyticsData> = {
       },
       {
         id: "q2_bar",
-        questionTitle: "Q2: Which features do you use most frequently on a weekly basis?",
+        questionTitle:
+          "Q2: Which features do you use most frequently on a weekly basis?",
         questionType: "Multiple Choice (Multi Select)",
         totalAnswers: 1248,
         interpretation:
@@ -175,7 +175,8 @@ export const MOCK_ANALYTICS_DATA: Record<string, SurveyAnalyticsData> = {
       },
       {
         id: "q3_bar",
-        questionTitle: "Q3: How likely are you to recommend InsightEase to a colleague? (NPS)",
+        questionTitle:
+          "Q3: How likely are you to recommend InsightEase to a colleague? (NPS)",
         questionType: "Net Promoter Score (1-10)",
         totalAnswers: 1248,
         interpretation:
@@ -199,7 +200,11 @@ export const MOCK_ANALYTICS_DATA: Record<string, SurveyAnalyticsData> = {
           { name: "Product Manager", value: 350, color: CHART_COLORS.navy },
           { name: "UX Researcher", value: 240, color: CHART_COLORS.blue },
           { name: "Engineering Lead", value: 146, color: CHART_COLORS.amber },
-          { name: "Executive / C-Level", value: 100, color: CHART_COLORS.purple },
+          {
+            name: "Executive / C-Level",
+            value: 100,
+            color: CHART_COLORS.purple,
+          },
         ],
       },
       {
@@ -222,7 +227,11 @@ export const MOCK_ANALYTICS_DATA: Record<string, SurveyAnalyticsData> = {
           "Mid-market (100-500 employee) and Enterprise (500+ employee) organizations compose 70% of respondents, matching core enterprise target profiles.",
         data: [
           { name: "Enterprise (500+)", value: 480, color: CHART_COLORS.navy },
-          { name: "Mid-Market (100-500)", value: 395, color: CHART_COLORS.tealLight },
+          {
+            name: "Mid-Market (100-500)",
+            value: 395,
+            color: CHART_COLORS.tealLight,
+          },
           { name: "Growth (20-99)", value: 243, color: CHART_COLORS.amber },
           { name: "Startup (1-19)", value: 130, color: CHART_COLORS.rose },
         ],

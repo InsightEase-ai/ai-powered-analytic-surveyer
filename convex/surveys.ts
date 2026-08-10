@@ -369,3 +369,27 @@ export const submitSurveyResponse = mutation({
     return null;
   },
 });
+
+export const deleteSurvey = mutation({
+  args: { id: v.id("surveys") },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+
+    const existing = await ctx.db.get(args.id);
+    if (!existing || existing.ownerId !== userId) {
+      throw new Error("Survey not found");
+    }
+
+    // also delete this survey's responses, so they don't become orphaned rows
+    const responses = await ctx.db
+      .query("surveyResponses")
+      .withIndex("by_survey", (q) => q.eq("surveyId", args.id))
+      .collect();
+    for (const response of responses) {
+      await ctx.db.delete(response._id);
+    }
+
+    await ctx.db.delete(args.id);
+  },
+});

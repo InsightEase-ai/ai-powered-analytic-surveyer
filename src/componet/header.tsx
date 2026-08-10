@@ -1,14 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router";
-import { useQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Bell, ChevronDown, FileText, Trash2 } from "lucide-react";
-import {
-  deleteSurvey,
-  getSurveys,
-  type StoredSurvey,
-  type SurveyStatus,
-} from "../lib/surveyStorage";
+import type { Id } from "../../convex/_generated/dataModel";
 
 const navLinks = [
   { to: "/", label: "Dashboard" },
@@ -17,7 +12,7 @@ const navLinks = [
   { to: "/chatbot", label: "Chatbot" },
 ];
 
-function statusLabel(status: SurveyStatus) {
+function statusLabel(status: "draft" | "published" | "closed") {
   switch (status) {
     case "published":
       return "Open";
@@ -28,7 +23,7 @@ function statusLabel(status: SurveyStatus) {
   }
 }
 
-function statusClass(status: SurveyStatus) {
+function statusClass(status: "draft" | "published" | "closed") {
   switch (status) {
     case "published":
       return "bg-teal-50 text-teal-700";
@@ -39,45 +34,16 @@ function statusClass(status: SurveyStatus) {
   }
 }
 
-function surveyPath(survey: { id: string; status?: string }) {
-  if (survey.status === "draft") return `/survey?id=${survey.id}`;
-  return `/surveys/${survey.id}`;
-}
-
 function Header() {
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [localSurveys, setLocalSurveys] = useState<StoredSurvey[]>([]);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Fetch real surveys from Convex DB
-  const convexSurveys = useQuery(api.surveys.listSurveys) ?? [];
-
-  function refreshSurveys() {
-    setLocalSurveys(getSurveys().slice(0, 5));
-  }
-
-  useEffect(() => {
-    refreshSurveys();
-  }, []);
-
-  // Merge Convex surveys with local draft surveys
-  const combinedSurveys: StoredSurvey[] = [
-    ...convexSurveys.map((s) => ({
-      id: s._id,
-      title: s.title,
-      description: s.description ?? "",
-      status: (s.status ?? "published") as SurveyStatus,
-      createdAt: new Date(s._creationTime).toISOString(),
-      updatedAt: new Date(s.updatedAt).toISOString(),
-      questions: (s.questions ?? []) as any[],
-    })),
-    ...localSurveys.filter((ls) => !convexSurveys.some((cs) => cs._id === ls.id)),
-  ];
+  const surveys = useQuery(api.surveys.listSurveys) ?? [];
+  const deleteSurveyMutation = useMutation(api.surveys.deleteSurvey);
 
   useEffect(() => {
     if (!menuOpen) return;
-    refreshSurveys();
 
     function handleClickOutside(event: MouseEvent) {
       if (
@@ -100,18 +66,28 @@ function Header() {
     };
   }, [menuOpen]);
 
-  function handleOpen(survey: StoredSurvey) {
+  function handleOpen(survey: {
+    _id: Id<"surveys">;
+    status: "draft" | "published" | "closed";
+  }) {
     setMenuOpen(false);
-    navigate(surveyPath(survey));
+    if (survey.status === "draft") {
+      navigate(`/survey?id=${survey._id}`);
+    } else {
+      navigate(`/surveys/${survey._id}`);
+    }
   }
 
-  function handleDelete(id: string, title: string) {
+  async function handleDelete(id: Id<"surveys">, title: string) {
     const confirmed = window.confirm(
       `Delete "${title || "Untitled Survey"}"? This cannot be undone.`,
     );
     if (!confirmed) return;
-    deleteSurvey(id);
-    refreshSurveys();
+    try {
+      await deleteSurveyMutation({ id });
+    } catch {
+      window.alert("Could not delete this survey. Please try again.");
+    }
   }
 
   return (
@@ -152,9 +128,9 @@ function Header() {
               aria-haspopup="menu"
             >
               Drafts
-              {combinedSurveys.length > 0 && (
+              {surveys.length > 0 && (
                 <span className="ml-0.5 inline-flex items-center justify-center min-w-5 h-5 px-1 rounded-full bg-teal-50 text-teal-700 text-[10px] font-bold">
-                  {combinedSurveys.length}
+                  {surveys.length}
                 </span>
               )}
               <ChevronDown
@@ -166,7 +142,7 @@ function Header() {
 
             {menuOpen && (
               <SurveyMenu
-                surveys={combinedSurveys}
+                surveys={surveys}
                 onClose={() => setMenuOpen(false)}
                 onOpen={handleOpen}
                 onDelete={handleDelete}
@@ -178,8 +154,7 @@ function Header() {
         <div className="flex items-center justify-end gap-2 sm:gap-3">
           <div className="lg:hidden">
             <MobileSurveysMenu
-              surveys={combinedSurveys}
-              onRefresh={refreshSurveys}
+              surveys={surveys}
               onOpen={handleOpen}
               onDelete={handleDelete}
             />
@@ -197,6 +172,13 @@ function Header() {
   );
 }
 
+type HeaderSurvey = {
+  _id: Id<"surveys">;
+  title: string;
+  status: "draft" | "published" | "closed";
+  updatedAt: number;
+};
+
 function SurveyMenu({
   surveys,
   onClose,
@@ -204,10 +186,10 @@ function SurveyMenu({
   onDelete,
   align = "center",
 }: {
-  surveys: StoredSurvey[];
+  surveys: HeaderSurvey[];
   onClose: () => void;
-  onOpen: (survey: StoredSurvey) => void;
-  onDelete: (id: string, title: string) => void;
+  onOpen: (survey: HeaderSurvey) => void;
+  onDelete: (id: Id<"surveys">, title: string) => void;
   align?: "center" | "right";
 }) {
   return (
@@ -246,7 +228,7 @@ function SurveyMenu({
         <ul className="max-h-80 overflow-y-auto divide-y divide-gray-50">
           {surveys.map((survey) => (
             <li
-              key={survey.id}
+              key={survey._id}
               className="px-3 py-2.5 flex items-center gap-2 hover:bg-gray-50"
             >
               <button
@@ -271,7 +253,7 @@ function SurveyMenu({
               <button
                 type="button"
                 onClick={() =>
-                  onDelete(survey.id, survey.title || "Untitled Survey")
+                  onDelete(survey._id, survey.title || "Untitled Survey")
                 }
                 className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50"
                 aria-label={`Delete ${survey.title || "survey"}`}
@@ -289,21 +271,18 @@ function SurveyMenu({
 
 function MobileSurveysMenu({
   surveys,
-  onRefresh,
   onOpen,
   onDelete,
 }: {
-  surveys: StoredSurvey[];
-  onRefresh: () => void;
-  onOpen: (survey: StoredSurvey) => void;
-  onDelete: (id: string, title: string) => void;
+  surveys: HeaderSurvey[];
+  onOpen: (survey: HeaderSurvey) => void;
+  onDelete: (id: Id<"surveys">, title: string) => void;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open) return;
-    onRefresh();
 
     function handleClickOutside(event: MouseEvent) {
       if (ref.current && !ref.current.contains(event.target as Node)) {
@@ -313,7 +292,7 @@ function MobileSurveysMenu({
 
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [open, onRefresh]);
+  }, [open]);
 
   return (
     <div className="relative" ref={ref}>
