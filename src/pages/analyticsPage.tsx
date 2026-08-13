@@ -1,10 +1,16 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router";
-import { useQuery } from "convex/react";
+import { useConvex, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import Header from "../componet/header";
 import { ReportToolbar } from "../componet/ReportToolbar";
+import {
+  downloadAnalyticsReport,
+  exportAnalyticsPdf,
+  exportResponsesCsv,
+  type AnalyticsExportPayload,
+} from "../lib/analyticsExport";
 import { AnalyticsHeader } from "../componet/AnalyticsHeader";
 import {
   AnalyticsSidebar,
@@ -32,6 +38,7 @@ import {
 import { FileSpreadsheet } from "lucide-react";
 
 export default function AnalyticsPage() {
+  const convex = useConvex();
   const [searchParams, setSearchParams] = useSearchParams();
   const surveyIdParam = searchParams.get("id");
 
@@ -40,6 +47,7 @@ export default function AnalyticsPage() {
 
   const [activeTab, setActiveTab] = useState<AnalyticsTab>("barcharts");
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [lastRefreshedAt, setLastRefreshedAt] = useState<Date | null>(null);
   const selectedSurveyId =
     surveyIdParam || (allSurveys.length > 0 ? allSurveys[0]._id : undefined);
 
@@ -104,62 +112,6 @@ export default function AnalyticsPage() {
           )
         : 0;
 
-    // Dynamic Bar Charts generated from actual choices
-    const barCharts = questions
-      .filter(
-        (q) =>
-          (q.type === "multiple_choice" || q.type === "rating") &&
-          q.options &&
-          q.options.length > 0,
-      )
-      .map((q, idx: number) => {
-        const optionCounts: Record<string, number> = {};
-        q.options?.forEach((opt: string) => {
-          optionCounts[opt] = 0;
-        });
-
-        let answeredCount = 0;
-        realResponses.forEach((resp) => {
-          const ans = resp.answers[q.id];
-          if (ans !== undefined && ans !== "") {
-            answeredCount++;
-            if (Array.isArray(ans)) {
-              ans.forEach((val: string) => {
-                if (optionCounts[val] !== undefined) optionCounts[val]++;
-                else optionCounts[val] = 1;
-              });
-            } else {
-              const valStr = String(ans);
-              if (optionCounts[valStr] !== undefined) optionCounts[valStr]++;
-              else optionCounts[valStr] = 1;
-            }
-          }
-        });
-
-        const data = Object.entries(optionCounts).map(([option, count]) => ({
-          option,
-          count,
-          percentage:
-            answeredCount > 0 ? Math.round((count / answeredCount) * 100) : 0,
-        }));
-
-        const topOption = [...data].sort((a, b) => b.count - a.count)[0];
-        const interpretation =
-          topOption && topOption.count > 0
-            ? `"${topOption.option}" is currently the top selected response (${topOption.percentage}% of answered questions).`
-            : "Responses recorded for this question are currently being aggregated.";
-
-        return {
-          id: `real_bar_${q.id || idx}`,
-          questionTitle: `Q${idx + 1}: ${q.title}`,
-          questionType:
-            q.type === "rating" ? "Rating Scale" : "Multiple Choice",
-          totalAnswers: answeredCount,
-          interpretation,
-          data,
-        };
-      });
-
     const pieChartColors = [
       CHART_COLORS.teal,
       CHART_COLORS.navy,
@@ -171,47 +123,111 @@ export default function AnalyticsPage() {
       CHART_COLORS.rose,
     ];
 
-    const pieCharts = questions
-      .filter((q) => q.type === "dropdown" && q.options && q.options.length > 0)
-      .map((q, idx: number) => {
-        const optionCounts: Record<string, number> = {};
-        q.options?.forEach((opt: string) => {
-          optionCounts[opt] = 0;
-        });
+    // Cap how many distinct answer values a single chart shows. Questions
+    // with predefined options (multiple_choice, dropdown, rating) rarely hit
+    // this; open-ended (long_text) or date questions can have many unique
+    // answers, so anything beyond the cap is grouped into "Other".
+    const MAX_CATEGORIES = 8;
 
-        let answeredCount = 0;
-        realResponses.forEach((resp) => {
-          const ans = resp.answers[q.id];
-          if (ans !== undefined && ans !== "") {
-            answeredCount++;
-            const valStr = String(ans);
-            if (optionCounts[valStr] !== undefined) optionCounts[valStr]++;
-            else optionCounts[valStr] = 1;
-          }
-        });
+    // Shared breakdown builder — works for ANY question type, not just
+    // ones with a predefined `options` list. This is what lets every
+    // question generate a bar chart AND a pie chart.
+    function getAnswerBreakdown(q: (typeof questions)[number]) {
+      const counts: Record<string, number> = {};
+      let answeredCount = 0;
 
-        const data = Object.entries(optionCounts).map(
-          ([name, value], colorIdx) => ({
-            name,
-            value,
-            color: pieChartColors[colorIdx % pieChartColors.length],
-          }),
-        );
-
-        const topEntry = [...data].sort((a, b) => b.value - a.value)[0];
-        const interpretation =
-          topEntry && topEntry.value > 0
-            ? `"${topEntry.name}" is the most common answer (${answeredCount > 0 ? Math.round((topEntry.value / answeredCount) * 100) : 0}% of answered responses).`
-            : "Responses recorded for this question are currently being aggregated.";
-
-        return {
-          id: `real_pie_${q.id || idx}`,
-          questionTitle: `Q${idx + 1}: ${q.title}`,
-          totalAnswers: answeredCount,
-          interpretation,
-          data,
-        };
+      realResponses.forEach((resp) => {
+        const ans = resp.answers[q.id];
+        if (ans === undefined || ans === "") return;
+        answeredCount++;
+        if (Array.isArray(ans)) {
+          ans.forEach((val) => {
+            const key = String(val);
+            counts[key] = (counts[key] || 0) + 1;
+          });
+        } else {
+          const key = String(ans);
+          counts[key] = (counts[key] || 0) + 1;
+        }
       });
+
+      // Seed 0-counts for predefined options so unpicked choices still show.
+      q.options?.forEach((opt: string) => {
+        if (counts[opt] === undefined) counts[opt] = 0;
+      });
+
+      let entries = Object.entries(counts).sort(([, a], [, b]) => b - a);
+
+      if (entries.length > MAX_CATEGORIES) {
+        const top = entries.slice(0, MAX_CATEGORIES);
+        const otherCount = entries
+          .slice(MAX_CATEGORIES)
+          .reduce((sum, [, c]) => sum + c, 0);
+        entries = otherCount > 0 ? [...top, ["Other", otherCount]] : top;
+      }
+
+      return { entries, answeredCount };
+    }
+
+    const questionTypeLabels: Record<string, string> = {
+      multiple_choice: "Multiple Choice",
+      rating: "Rating Scale",
+      dropdown: "Dropdown",
+      long_text: "Open Text",
+      date: "Date",
+    };
+
+    // Dynamic Bar Charts — one per question, regardless of type.
+    const barCharts = questions.map((q, idx: number) => {
+      const { entries, answeredCount } = getAnswerBreakdown(q);
+
+      const data = entries.map(([option, count]) => ({
+        option,
+        count,
+        percentage:
+          answeredCount > 0 ? Math.round((count / answeredCount) * 100) : 0,
+      }));
+
+      const topOption = [...data].sort((a, b) => b.count - a.count)[0];
+      const interpretation =
+        topOption && topOption.count > 0
+          ? `"${topOption.option}" is currently the top selected response (${topOption.percentage}% of answered questions).`
+          : "Responses recorded for this question are currently being aggregated.";
+
+      return {
+        id: `real_bar_${q.id || idx}`,
+        questionTitle: `Q${idx + 1}: ${q.title}`,
+        questionType: questionTypeLabels[q.type] ?? q.type,
+        totalAnswers: answeredCount,
+        interpretation,
+        data,
+      };
+    });
+
+    // Dynamic Pie Charts — one per question, regardless of type.
+    const pieCharts = questions.map((q, idx: number) => {
+      const { entries, answeredCount } = getAnswerBreakdown(q);
+
+      const data = entries.map(([name, value], colorIdx) => ({
+        name,
+        value,
+        color: pieChartColors[colorIdx % pieChartColors.length],
+      }));
+
+      const topEntry = [...data].sort((a, b) => b.value - a.value)[0];
+      const interpretation =
+        topEntry && topEntry.value > 0
+          ? `"${topEntry.name}" is the most common answer (${answeredCount > 0 ? Math.round((topEntry.value / answeredCount) * 100) : 0}% of answered responses).`
+          : "Responses recorded for this question are currently being aggregated.";
+
+      return {
+        id: `real_pie_${q.id || idx}`,
+        questionTitle: `Q${idx + 1}: ${q.title}`,
+        totalAnswers: answeredCount,
+        interpretation,
+        data,
+      };
+    });
 
     // Dynamic Line Chart: daily response volume
     const dailyCounts: Record<string, number> = {};
@@ -300,6 +316,44 @@ export default function AnalyticsPage() {
       });
     }
 
+    // Dynamic Line Chart: one per question, tracking that question's daily
+    // answer volume. This is what makes every question generate a line
+    // chart too, alongside the two survey-level overview charts above.
+    questions.forEach((q, idx: number) => {
+      const perQuestionDailyCounts: Record<string, number> = {};
+      realResponses.forEach((resp) => {
+        const ans = resp.answers[q.id];
+        if (ans === undefined || ans === "") return;
+        const d = new Date(resp._creationTime);
+        const sortKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+        perQuestionDailyCounts[sortKey] =
+          (perQuestionDailyCounts[sortKey] || 0) + 1;
+      });
+
+      const perQuestionData = Object.entries(perQuestionDailyCounts)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([sortKey, count]) => {
+          const [year, month, day] = sortKey.split("-").map(Number);
+          const label = new Date(year, month - 1, day).toLocaleDateString(
+            "en-US",
+            { month: "short", day: "2-digit" },
+          );
+          return { date: label, responses: count, completionRate: 0 };
+        });
+
+      if (perQuestionData.length === 0) return;
+
+      lineCharts.push({
+        id: `real_line_q_${q.id || idx}`,
+        chartTitle: `Q${idx + 1}: ${q.title} — Daily Answers`,
+        interpretation:
+          perQuestionData.length > 1
+            ? `This question received answers across ${perQuestionData.length} days, peaking at ${Math.max(...perQuestionData.map((d) => d.responses))} answers in a single day.`
+            : "Not enough days of data yet to identify a trend for this question.",
+        data: perQuestionData,
+      });
+    });
+
     // Dynamic Response Table generated from real submissions
     const responseTable = realResponses.slice(0, 15).map((resp) => {
       const dateStr = new Date(resp._creationTime).toLocaleString([], {
@@ -320,7 +374,7 @@ export default function AnalyticsPage() {
     return {
       surveyId: selectedSurveyId ?? "",
       surveyTitle: activeSurveyTitle ?? survey.title,
-      lastUpdated: new Date().toLocaleString(),
+      lastUpdated: (lastRefreshedAt ?? new Date()).toLocaleString(),
       stats: {
         totalResponses,
         completionRate: surveyAnswerRate,
@@ -337,12 +391,81 @@ export default function AnalyticsPage() {
     };
   })();
 
-  const handleRefresh = () => {
+  const exportPayload = useMemo<AnalyticsExportPayload>(
+    () => ({
+      surveyTitle: analytics.surveyTitle,
+      surveyId: analytics.surveyId,
+      lastUpdated: analytics.lastUpdated,
+      stats: analytics.stats,
+      barCharts: analytics.barCharts.map((chart) => ({
+        questionTitle: chart.questionTitle,
+        questionType: chart.questionType,
+        totalAnswers: chart.totalAnswers,
+        interpretation: chart.interpretation,
+        data: chart.data,
+      })),
+      pieCharts: analytics.pieCharts.map((chart) => ({
+        questionTitle: chart.questionTitle,
+        totalAnswers: chart.totalAnswers,
+        interpretation: chart.interpretation,
+        data: chart.data.map((entry) => ({
+          name: entry.name,
+          value: entry.value,
+        })),
+      })),
+      lineCharts: analytics.lineCharts.map((chart) => ({
+        chartTitle: chart.chartTitle,
+        interpretation: chart.interpretation,
+        data: chart.data,
+      })),
+      responseTable: analytics.responseTable.map((row) => ({
+        responseId: row.responseId,
+        submittedAt: row.submittedAt,
+        status: row.status,
+      })),
+    }),
+    [analytics],
+  );
+
+  const exportsDisabled = !selectedSurveyId || survey === undefined;
+
+  const handleRefresh = async () => {
+    if (!selectedSurveyId) return;
+
     setIsRefreshing(true);
-    // Simulate real-time data sync/fetch delay
-    setTimeout(() => {
+    try {
+      const surveyId = selectedSurveyId as Id<"surveys">;
+      await Promise.all([
+        convex.query(api.surveys.getSurveyById, { id: surveyId }),
+        convex.query(api.surveys.getResponsesForSurvey, { surveyId }),
+      ]);
+      setLastRefreshedAt(new Date());
+    } finally {
       setIsRefreshing(false);
-    }, 800);
+    }
+  };
+
+  const handleDownloadReport = () => {
+    void downloadAnalyticsReport(exportPayload).catch(() => {
+      window.alert("Unable to generate the report. Please try again.");
+    });
+  };
+
+  const handleExportPdf = () => {
+    exportAnalyticsPdf(exportPayload);
+  };
+
+  const handleExportCsv = () => {
+    if (!survey?.questions) return;
+    exportResponsesCsv(
+      analytics.surveyTitle,
+      survey.questions.map((q) => ({
+        id: q.id,
+        title: q.title,
+        type: q.type,
+      })),
+      realResponses,
+    );
   };
 
   const handleSelectSurvey = (id: string) => {
@@ -359,7 +482,14 @@ export default function AnalyticsPage() {
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 space-y-6">
         {/* Top Report Toolbar */}
-        <ReportToolbar onRefresh={handleRefresh} isRefreshing={isRefreshing} />
+        <ReportToolbar
+          onRefresh={handleRefresh}
+          isRefreshing={isRefreshing}
+          onDownloadReport={handleDownloadReport}
+          onExportPdf={handleExportPdf}
+          onExportCsv={handleExportCsv}
+          exportsDisabled={exportsDisabled}
+        />
 
         {/* Top Analytics Header */}
         <AnalyticsHeader

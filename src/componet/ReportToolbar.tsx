@@ -4,30 +4,20 @@ import { Download, FileSpreadsheet, FileText, RefreshCw } from "lucide-react";
 interface ReportToolbarProps {
   onRefresh?: () => void;
   isRefreshing?: boolean;
+  onDownloadReport?: () => void;
+  onExportPdf?: () => void;
+  onExportCsv?: () => void;
+  exportsDisabled?: boolean;
 }
 
 export const ReportToolbar: React.FC<ReportToolbarProps> = ({
   onRefresh,
   isRefreshing = false,
+  onDownloadReport,
+  onExportPdf,
+  onExportCsv,
+  exportsDisabled = false,
 }) => {
-  const handleDownloadReport = () => {
-    // TODO: Trigger comprehensive PDF/Executive Analytics Report compilation
-    console.log("[TODO] Downloading full analytics report...");
-    alert("[Placeholder] Generating & downloading full Analytics Report...");
-  };
-
-  const handleExportPDF = () => {
-    // TODO: Export current analytics view as PDF
-    console.log("[TODO] Exporting Analytics as PDF...");
-    alert("[Placeholder] Exporting PDF...");
-  };
-
-  const handleExportCSV = () => {
-    // TODO: Export raw survey responses dataset as CSV file
-    console.log("[TODO] Exporting raw data as CSV...");
-    alert("[Placeholder] Exporting survey response data as CSV...");
-  };
-
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 bg-white rounded-2xl border border-gray-100 p-3 sm:px-5 shadow-sm">
       <div className="flex items-center gap-2">
@@ -40,17 +30,19 @@ export const ReportToolbar: React.FC<ReportToolbarProps> = ({
       <div className="flex flex-wrap items-center gap-2">
         <button
           type="button"
-          onClick={handleDownloadReport}
-          className="inline-flex items-center gap-2 bg-[#0B192C] text-white px-3.5 py-2 rounded-xl text-xs font-medium hover:bg-[#152a40] transition-colors shadow-sm"
+          onClick={onDownloadReport}
+          disabled={exportsDisabled}
+          className="inline-flex items-center gap-2 bg-[#0B192C] text-white px-3.5 py-2 rounded-xl text-xs font-medium hover:bg-[#152a40] transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Download className="w-3.5 h-3.5 text-teal-400" />
-          Download Analytics Report
+          Download DOCX Report
         </button>
 
         <button
           type="button"
-          onClick={handleExportPDF}
-          className="inline-flex items-center gap-1.5 border border-gray-200 bg-white text-gray-700 hover:border-teal-300 hover:text-teal-700 px-3 py-2 rounded-xl text-xs font-medium transition-colors"
+          onClick={onExportPdf}
+          disabled={exportsDisabled}
+          className="inline-flex items-center gap-1.5 border border-gray-200 bg-white text-gray-700 hover:border-teal-300 hover:text-teal-700 px-3 py-2 rounded-xl text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <FileText className="w-3.5 h-3.5 text-rose-500" />
           Export PDF
@@ -58,8 +50,9 @@ export const ReportToolbar: React.FC<ReportToolbarProps> = ({
 
         <button
           type="button"
-          onClick={handleExportCSV}
-          className="inline-flex items-center gap-1.5 border border-gray-200 bg-white text-gray-700 hover:border-teal-300 hover:text-teal-700 px-3 py-2 rounded-xl text-xs font-medium transition-colors"
+          onClick={onExportCsv}
+          disabled={exportsDisabled}
+          className="inline-flex items-center gap-1.5 border border-gray-200 bg-white text-gray-700 hover:border-teal-300 hover:text-teal-700 px-3 py-2 rounded-xl text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
           Export CSV
@@ -68,8 +61,8 @@ export const ReportToolbar: React.FC<ReportToolbarProps> = ({
         <button
           type="button"
           onClick={onRefresh}
-          disabled={isRefreshing}
-          className="inline-flex items-center gap-1.5 border border-gray-200 bg-white text-gray-700 hover:border-gray-300 px-3 py-2 rounded-xl text-xs font-medium transition-colors disabled:opacity-50"
+          disabled={isRefreshing || exportsDisabled}
+          className="inline-flex items-center gap-1.5 border border-gray-200 bg-white text-gray-700 hover:border-gray-300 px-3 py-2 rounded-xl text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           title="Refresh Data"
         >
           <RefreshCw
