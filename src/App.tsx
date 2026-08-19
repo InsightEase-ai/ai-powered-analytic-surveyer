@@ -1,14 +1,22 @@
+import { useConvexAuth } from "convex/react";
 import { createBrowserRouter, Navigate } from "react-router";
 import { RouterProvider } from "react-router/dom";
 import Login from "./pages/login";
 import SignUp from "./pages/sign-up";
 import Dashboard from "./pages/dashBoard";
 import PlaceholderPage from "./pages/placeholderPage";
+import CreateSurvey from "./pages/createSurvey";
+import PublicTakeSurvey from "./pages/publicTakeSurvey";
+import SurveyManage from "./pages/surveyManage";
+import AnalyticsPage from "./pages/analyticsPage";
+import ChatbotPage from "./pages/chatbotPage";
 
 function App() {
+  const { isAuthenticated, isLoading } = useConvexAuth();
+
   const router = createBrowserRouter([
     {
-      path: "/",
+      path: "/log-in",
       element: <Login />,
     },
     {
@@ -16,16 +24,29 @@ function App() {
       element: <SignUp />,
     },
     {
-      path: "/dashboard",
-      element: <Dashboard />,
+      path: "/",
+      element: (
+        <Dashboard
+          isAuthenticated={isAuthenticated}
+          isLoading={isLoading}
+        />
+      ),
     },
     {
       path: "/analytics",
-      element: <PlaceholderPage title="Analytics" />,
+      element: <AnalyticsPage />,
     },
     {
       path: "/survey",
-      element: <PlaceholderPage title="Survey" />,
+      element: <CreateSurvey />,
+    },
+    {
+      path: "/survey/:slug",
+      element: <PublicTakeSurvey />,
+    },
+    {
+      path: "/surveys/:id",
+      element: <SurveyManage />,
     },
     {
       path: "/report",
@@ -37,11 +58,11 @@ function App() {
     },
     {
       path: "/chatbot",
-      element: <PlaceholderPage title="Chatbot" />,
+      element: <ChatbotPage />,
     },
     {
       path: "*",
-      element: <Navigate to="/dashboard" replace />,
+      element: <Navigate to="/" replace />,
     },
   ]);
 
