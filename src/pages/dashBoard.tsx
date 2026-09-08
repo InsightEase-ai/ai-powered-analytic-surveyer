@@ -158,7 +158,7 @@ function DashBoard() {
           {stats.map((stat) => (
             <div
               key={stat.label}
-              className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5"
+              className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 transition-all duration-300 hover:shadow-md hover:-translate-y-1"
             >
               <p className="text-gray-500 text-sm">{stat.label}</p>
               <p className="text-4xl font-bold text-gray-900 mt-1">
@@ -184,7 +184,7 @@ function DashBoard() {
         {/* 3-Column Aligned Layout matching the 3 top stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
           {/* Column 1: Aligned under "Total Surveys" -> Recent Activity */}
-          <div className="bg-[#E8ECF0] rounded-2xl p-5 flex flex-col min-h-[380px]">
+          <div className="bg-[#E8ECF0] rounded-2xl p-5 flex flex-col min-h-[380px] transition-all duration-300 hover:shadow-md hover:-translate-y-1">
             <h2 className="text-base font-bold text-gray-900 mb-4">
               Recent Activity
             </h2>
@@ -221,7 +221,7 @@ function DashBoard() {
           </div>
 
           {/* Column 2: Aligned under "Responses this month" -> Recent Surveys */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex flex-col min-h-[380px]">
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex flex-col min-h-[380px] transition-all duration-300 hover:shadow-md hover:-translate-y-1">
             <h2 className="text-base font-bold text-gray-900 mb-4">
               Recent Surveys
             </h2>
@@ -240,7 +240,7 @@ function DashBoard() {
                           ? `/surveys/${survey._id}`
                           : `/survey?id=${survey._id}`
                       }
-                      className="block border border-gray-100 rounded-xl p-4 hover:border-teal-200 transition-colors"
+                      className="block border border-gray-100 rounded-xl p-4 hover:border-teal-200 transition-all duration-200 hover:shadow-sm hover:-translate-y-0.5 bg-white"
                     >
                       <div className="flex items-start justify-between gap-2">
                         <h3 className="font-semibold text-gray-900 text-sm leading-tight">
@@ -282,7 +282,7 @@ function DashBoard() {
           </div>
 
           {/* Column 3: Aligned under "Avg. Answer Rate" -> Sherpa AI */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col min-h-[380px]">
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col min-h-[380px] transition-all duration-300 hover:shadow-md hover:-translate-y-1">
             <div className="p-5 flex-1 flex flex-col">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 rounded-full bg-teal-50 flex items-center justify-center shrink-0">

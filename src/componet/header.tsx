@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import { Bell, ChevronDown, FileText, Trash2 } from "lucide-react";
+import { Bell, ChevronDown, FileText, Trash2, Menu, X } from "lucide-react";
 import type { Id } from "../../convex/_generated/dataModel";
 
 const navLinks = [
@@ -37,6 +37,7 @@ function statusClass(status: "draft" | "published" | "closed") {
 function Header() {
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const surveys = useQuery(api.surveys.listSurveys) ?? [];
@@ -165,9 +166,41 @@ function Header() {
           >
             <Bell className="w-5 h-5" />
           </button>
-          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#8BB1D4] to-[#0B192C]" />
+          <div className="hidden sm:block w-9 h-9 rounded-full bg-gradient-to-br from-[#8BB1D4] to-[#0B192C]" />
+          <button
+            type="button"
+            onClick={() => setMobileNavOpen(!mobileNavOpen)}
+            className="p-1.5 lg:hidden text-gray-500 hover:text-gray-900 transition-colors bg-gray-50 rounded-lg hover:bg-gray-100"
+          >
+            {mobileNavOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </button>
         </div>
       </div>
+
+      {/* Mobile Navigation Menu */}
+      {mobileNavOpen && (
+        <div className="absolute top-16 left-0 right-0 bg-white shadow-xl border-b border-gray-100 lg:hidden animate-fade-in-up z-50">
+          <div className="flex flex-col p-4 gap-2">
+            {navLinks.map(({ to, label }) => (
+              <NavLink
+                key={to}
+                to={to}
+                end={to === "/dashboard"}
+                onClick={() => setMobileNavOpen(false)}
+                className={({ isActive }) =>
+                  `px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
+                    isActive
+                      ? "bg-[#5CE1E6] text-teal-900 shadow-sm"
+                      : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 hover:pl-5"
+                  }`
+                }
+              >
+                {label}
+              </NavLink>
+            ))}
+          </div>
+        </div>
+      )}
     </header>
   );
 }

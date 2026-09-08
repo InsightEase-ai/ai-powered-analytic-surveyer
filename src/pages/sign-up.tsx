@@ -104,10 +104,10 @@ function SignUp() {
 
   return (
     <div className="h-screen w-screen overflow-hidden bg-[#F4F6F8] flex flex-col items-center p-4 md:p-6 font-sans text-sm">
-      <div className="w-full max-w-5xl flex-1 flex flex-col min-h-0">
-        <div className="w-full bg-white rounded-3xl shadow-xl flex flex-col md:flex-row overflow-hidden my-auto shrink min-h-0">
+      <div className="w-full max-w-5xl flex-1 flex flex-col min-h-0 animate-fade-in-up">
+        <div className="w-full bg-white rounded-3xl shadow-2xl flex flex-col md:flex-row overflow-hidden my-auto shrink min-h-0">
           {/* Left Panel */}
-          <div className="bg-[#0B192C] text-white w-full md:w-1/2 p-8 lg:p-10 flex flex-col justify-between relative overflow-hidden">
+          <div className="bg-[#0B192C] text-white w-full md:w-1/2 p-8 lg:p-10 flex flex-col justify-between relative overflow-hidden group">
             <div className="relative z-10">
               <h1 className="text-2xl lg:text-3xl font-bold mb-1">
                 InsightEase
@@ -203,9 +203,9 @@ function SignUp() {
                             key={role.id}
                             type="button"
                             onClick={() => field.onChange(role.id)}
-                            className={`flex flex-col items-center justify-center py-2 px-1 lg:px-2 flex-1 rounded-xl lg:rounded-2xl transition-all duration-200 ${
+                            className={`flex flex-col items-center justify-center py-2 px-1 lg:px-2 flex-1 rounded-xl lg:rounded-2xl transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md ${
                               field.value === role.id
-                                ? "bg-[#5CE1E6] text-teal-900 shadow-sm"
+                                ? "bg-[#5CE1E6] text-teal-900 shadow-md ring-2 ring-[#5CE1E6] ring-offset-1"
                                 : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                             }`}
                           >
@@ -251,7 +251,7 @@ function SignUp() {
                         type="text"
                         placeholder="Enter your full name"
                         {...register("fullName")}
-                        className={`w-full bg-gray-100 border-none rounded-full pl-9 pr-3 py-2.5 lg:py-3 focus:ring-2 focus:ring-[#0B192C] outline-none text-gray-800 placeholder-gray-400 text-xs lg:text-sm ${
+                        className={`w-full bg-gray-100 border-none rounded-full pl-9 pr-3 py-2.5 lg:py-3 focus:ring-2 focus:ring-[#0B192C] outline-none text-gray-800 placeholder-gray-400 text-xs lg:text-sm transition-shadow duration-200 hover:bg-gray-200 focus:bg-white ${
                           errors.fullName ? "ring-2 ring-red-500" : ""
                         }`}
                       />
@@ -272,7 +272,7 @@ function SignUp() {
                         type="email"
                         placeholder="name@company.com"
                         {...register("email")}
-                        className={`w-full bg-gray-100 border-none rounded-full pl-4 pr-9 py-2.5 lg:py-3 focus:ring-2 focus:ring-[#0B192C] outline-none text-gray-800 placeholder-gray-400 text-xs lg:text-sm ${
+                        className={`w-full bg-gray-100 border-none rounded-full pl-4 pr-9 py-2.5 lg:py-3 focus:ring-2 focus:ring-[#0B192C] outline-none text-gray-800 placeholder-gray-400 text-xs lg:text-sm transition-shadow duration-200 hover:bg-gray-200 focus:bg-white ${
                           errors.email ? "ring-2 ring-red-500" : ""
                         }`}
                       />
@@ -299,7 +299,7 @@ function SignUp() {
                         type={showPassword ? "text" : "password"}
                         placeholder="Create a password"
                         {...register("password")}
-                        className={`w-full bg-gray-100 border-none rounded-full pl-4 pr-9 py-2.5 lg:py-3 focus:ring-2 focus:ring-[#0B192C] outline-none text-gray-800 placeholder-gray-400 text-xs lg:text-sm ${
+                        className={`w-full bg-gray-100 border-none rounded-full pl-4 pr-9 py-2.5 lg:py-3 focus:ring-2 focus:ring-[#0B192C] outline-none text-gray-800 placeholder-gray-400 text-xs lg:text-sm transition-shadow duration-200 hover:bg-gray-200 focus:bg-white ${
                           errors.password ? "ring-2 ring-red-500" : ""
                         }`}
                       />
@@ -326,7 +326,7 @@ function SignUp() {
                         type={showConfirmPassword ? "text" : "password"}
                         placeholder="Confirm your password"
                         {...register("confirmPassword")}
-                        className={`w-full bg-gray-100 border-none rounded-full pl-4 pr-9 py-2.5 lg:py-3 focus:ring-2 focus:ring-[#0B192C] outline-none text-gray-800 placeholder-gray-400 text-xs lg:text-sm ${
+                        className={`w-full bg-gray-100 border-none rounded-full pl-4 pr-9 py-2.5 lg:py-3 focus:ring-2 focus:ring-[#0B192C] outline-none text-gray-800 placeholder-gray-400 text-xs lg:text-sm transition-shadow duration-200 hover:bg-gray-200 focus:bg-white ${
                           errors.confirmPassword ? "ring-2 ring-red-500" : ""
                         }`}
                       />
@@ -423,7 +423,7 @@ function SignUp() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className={`w-full bg-[#0B192C] text-white font-bold py-2.5 rounded-xl transition-all shadow-md hover:bg-[#11263F] active:scale-[0.99] ${
+                  className={`w-full bg-[#0B192C] text-white font-bold py-2.5 rounded-xl transition-all duration-300 shadow-md hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 hover:bg-[#11263F] ${
                     loading ? "opacity-50 cursor-not-allowed" : ""
                   }`}
                 >
@@ -442,7 +442,7 @@ function SignUp() {
                 {/* Google Signup */}
                 <button
                   type="button"
-                  className="w-full bg-white border border-gray-200 hover:bg-gray-50 text-gray-900 font-semibold rounded-full py-2.5 lg:py-3 flex items-center justify-center gap-2 lg:gap-3 transition-colors shadow-sm text-xs lg:text-sm"
+                  className="w-full bg-white border border-gray-200 hover:bg-gray-50 text-gray-900 font-semibold rounded-full py-2.5 lg:py-3 flex items-center justify-center gap-2 lg:gap-3 transition-all duration-300 shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 text-xs lg:text-sm"
                   onClick={() => {
                     void signIn("google");
                   }}
