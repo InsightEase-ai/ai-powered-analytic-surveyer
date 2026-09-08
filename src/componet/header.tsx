@@ -6,7 +6,7 @@ import { Bell, ChevronDown, FileText, Trash2 } from "lucide-react";
 import type { Id } from "../../convex/_generated/dataModel";
 
 const navLinks = [
-  { to: "/", label: "Dashboard" },
+  { to: "/dashboard", label: "Dashboard" },
   { to: "/survey", label: "Create Survey" },
   { to: "/analytics", label: "Analytics" },
   { to: "/chatbot", label: "Chatbot" },
@@ -93,7 +93,7 @@ function Header() {
   return (
     <header className="bg-white border-b border-gray-200 relative z-40">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-[auto_1fr_auto] items-center h-16 gap-4 sm:gap-6">
-        <NavLink to="/" className="font-bold text-base text-[#0B192C]">
+        <NavLink to="/dashboard" className="font-bold text-base text-[#0B192C]">
           InsightEase
         </NavLink>
 
@@ -102,7 +102,7 @@ function Header() {
             <NavLink
               key={to}
               to={to}
-              end={to === "/"}
+              end={to === "/dashboard"}
               className={({ isActive }) =>
                 `text-sm whitespace-nowrap ${
                   isActive

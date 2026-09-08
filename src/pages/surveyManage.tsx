@@ -78,7 +78,7 @@ function SurveyManage() {
         <div className="max-w-lg mx-auto px-4 py-16 text-center">
           <h1 className="text-xl font-bold text-gray-900">Survey not found</h1>
           <Link
-            to="/"
+            to="/dashboard"
             className="inline-flex items-center gap-2 mt-4 text-sm text-teal-600 hover:text-teal-700"
           >
             <ArrowLeft className="w-4 h-4" /> Back to dashboard
@@ -157,7 +157,7 @@ function SurveyManage() {
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
           <div>
             <Link
-              to="/"
+              to="/dashboard"
               className="inline-flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-800 mb-2"
             >
               <ArrowLeft className="w-3.5 h-3.5" /> Dashboard

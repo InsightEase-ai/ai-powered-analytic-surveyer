@@ -76,7 +76,7 @@ function SignUp() {
         role: data.role, // Stores the role in the user table
       });
 
-      navigate("/"); // Redirect to root page after successful login!
+      navigate("/dashboard");
     } catch (error) {
       console.error(error);
       // Display the backend error message directly to the user

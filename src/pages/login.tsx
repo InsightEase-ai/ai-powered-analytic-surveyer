@@ -48,7 +48,7 @@ function Login() {
         flow: "signIn", // Tells Convex to check credentials
       });
 
-      navigate("/"); // Send user to your homepage on success
+      navigate("/dashboard");
     } catch (error) {
       console.error(error);
       setServerError(error instanceof Error ? error.message : "Invalid email or password.");

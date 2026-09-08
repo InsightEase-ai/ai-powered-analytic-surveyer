@@ -4,9 +4,6 @@ import { api } from "../../convex/_generated/api";
 import {
   Plus,
   TrendingUp,
-  AlertTriangle,
-  Lightbulb,
-  Info,
   Pencil,
   CheckCircle2,
   UserPlus,
@@ -18,64 +15,6 @@ import {
 } from "lucide-react";
 import heroImg from "../assets/hero.png";
 import DashboardLayout from "../componet/dashboardLayout";
-import Login from "./login";
-
-
-type DashboardProps = {
-  isAuthenticated: boolean;
-  isLoading: boolean;
-};
-
-const insights = [
-  {
-    border: "border-l-red-500",
-    icon: AlertTriangle,
-    iconBg: "bg-red-50",
-    iconColor: "text-red-500",
-    badge: "PRIORITY: HIGH",
-    badgeColor: "text-red-500",
-    title: "Satisfaction dropped 22%",
-    body: "Customers are mentioning 'slow loading times' in your Q3 Product Feedback survey.",
-    time: "2 hours ago",
-    action: "INVESTIGATE",
-  },
-  {
-    border: "border-l-green-500",
-    icon: TrendingUp,
-    iconBg: "bg-green-50",
-    iconColor: "text-green-500",
-    badge: "TREND",
-    badgeColor: "text-green-600",
-    title: "Viral Growth Spike",
-    body: "Referral conversion rates have increased by 45% in the last 72 hours.",
-    time: "5 hours ago",
-    action: "EXPAND STUDY",
-  },
-  {
-    border: "border-l-teal-500",
-    icon: Lightbulb,
-    iconBg: "bg-teal-50",
-    iconColor: "text-teal-500",
-    badge: "OPPORTUNITY",
-    badgeColor: "text-teal-600",
-    title: "Ideal Survey Window",
-    body: "Target users at 10:00 AM PST for a predicted 15% increase in response rate.",
-    time: "Yesterday",
-    action: "SCHEDULE",
-  },
-  {
-    border: "border-l-blue-500",
-    icon: Info,
-    iconBg: "bg-blue-50",
-    iconColor: "text-blue-500",
-    badge: "INFO",
-    badgeColor: "text-blue-500",
-    title: "New Segment Found",
-    body: "I've identified a 'Power User' cluster in your recent NPS data.",
-    time: "2 days ago",
-    action: "VIEW CLUSTER",
-  },
-];
 
 const activityConfig = {
   survey_edited: {
@@ -150,7 +89,7 @@ const chatSuggestions = [
   "Summarize feedback trends",
 ];
 
-function DashBoard({ isAuthenticated, isLoading }: DashboardProps) {
+function DashBoard() {
   const currentUser = useQuery(api.users.currentUser);
   const name = currentUser?.name ?? "there";
   const mySurveys = useQuery(api.surveys.recentSurveys) ?? [];
@@ -184,16 +123,6 @@ function DashBoard({ isAuthenticated, isLoading }: DashboardProps) {
       positive: null,
     },
   ];
-
-  if (isLoading) {
-    return (
-      <p style={{ fontSize: "3rem", textAlign: "center" }}>Loading...</p>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return <Login />;
-  }
 
   return (
     <DashboardLayout>

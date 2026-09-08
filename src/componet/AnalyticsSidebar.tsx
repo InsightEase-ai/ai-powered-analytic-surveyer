@@ -1,5 +1,5 @@
 import React from "react";
-import { LayoutDashboard, BarChart2, PieChart, LineChart, Table } from "lucide-react";
+import { BarChart2, PieChart, LineChart, Table } from "lucide-react";
 
 export type AnalyticsTab = "barcharts" | "piecharts" | "linecharts" | "tables";
 
