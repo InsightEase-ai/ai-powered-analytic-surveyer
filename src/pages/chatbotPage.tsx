@@ -159,7 +159,7 @@ export default function ChatbotPage() {
     <div className="h-dvh bg-[#F4F6F8] font-sans text-sm flex flex-col overflow-hidden">
       <Header />
 
-      <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-4 flex flex-col min-h-0">
+      <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-4 flex flex-col min-h-0 animate-fade-in-up">
         {/* Top Active Survey Selector */}
         <div className="bg-white rounded-2xl border border-gray-100 p-3.5 shadow-sm mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
           <div>
@@ -286,7 +286,7 @@ export default function ChatbotPage() {
                 onClick={() => {
                   setInput(q);
                 }}
-                className="text-xs bg-white border border-gray-200 text-gray-600 hover:text-gray-900 hover:border-teal-300 px-3 py-1.5 rounded-full whitespace-nowrap transition-colors shadow-2xs"
+                className="text-xs bg-white border border-gray-200 text-gray-600 hover:text-gray-900 hover:border-amber-400 px-3 py-1.5 rounded-full whitespace-nowrap transition-all duration-300 hover:shadow-sm hover:-translate-y-0.5"
               >
                 {q}
               </button>
@@ -308,7 +308,7 @@ export default function ChatbotPage() {
             <button
               type="submit"
               disabled={!input.trim()}
-              className="bg-[#0B192C] text-white p-2.5 rounded-xl hover:bg-[#152a40] disabled:opacity-40 disabled:cursor-not-allowed transition-colors shrink-0"
+              className="bg-amber-500 text-white p-2.5 rounded-xl hover:bg-amber-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-300 hover:-translate-y-0.5 shrink-0"
               title="Send message"
             >
               <Send className="w-4 h-4" />

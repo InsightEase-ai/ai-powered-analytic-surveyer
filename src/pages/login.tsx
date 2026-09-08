@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { Lightbulb, EyeOff, Eye, GraduationCap, SquareUser, BarChart3, Briefcase } from 'lucide-react';
 import heroImg from '../assets/hero.png';
 import { Link, useNavigate } from 'react-router';
+import { parseAuthError } from '../lib/errorUtils';
 
 const schema = z.object({
   role: z.enum(['student', 'lecturer', 'researcher', 'owner']),
@@ -51,7 +52,7 @@ function Login() {
       navigate("/dashboard");
     } catch (error) {
       console.error(error);
-      setServerError(error instanceof Error ? error.message : "Invalid email or password.");
+      setServerError(parseAuthError(error));
     } finally {
       setLoading(false);
     }
@@ -77,7 +78,7 @@ function Login() {
                 {/* Tooltip */}
                 <div className="absolute -top-12 -left-4 lg:-top-16 lg:-left-6 bg-gray-200 text-[#0B192C] text-xs px-3 py-2 lg:px-4 lg:py-3 rounded-2xl shadow-lg w-44 lg:w-52 opacity-95">
                   <div className="flex items-center gap-2 mb-1">
-                    <div className="bg-[#087F8C] rounded-full p-1">
+                    <div className="bg-amber-500 rounded-full p-1">
                       <Lightbulb
                         size={10}
                         className="text-white lg:w-3 lg:h-3"
@@ -113,7 +114,7 @@ function Login() {
           </div>
 
           {/* Right Panel */}
-          <div className="w-full md:w-1/2 bg-white relative min-h-0 overflow-y-auto flex flex-col">
+          <div className="w-full md:w-1/2 bg-white relative min-h-0 overflow-y-auto flex flex-col border-t-4 border-amber-500 md:border-t-0 md:border-l-4">
             <div className="my-auto flex flex-col w-full h-full px-8 py-6 lg:px-12 lg:py-8">
               <h2 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-1">
                 Welcome Back

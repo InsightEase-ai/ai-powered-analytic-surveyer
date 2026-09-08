@@ -282,7 +282,7 @@ function DashBoard() {
           </div>
 
           {/* Column 3: Aligned under "Avg. Answer Rate" -> Sherpa AI */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col min-h-[380px] transition-all duration-300 hover:shadow-md hover:-translate-y-1">
+          <div className="bg-white rounded-2xl border border-gray-100 border-t-4 border-t-amber-500 shadow-sm overflow-hidden flex flex-col min-h-[380px] transition-all duration-300 hover:shadow-md hover:-translate-y-1">
             <div className="p-5 flex-1 flex flex-col">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 rounded-full bg-teal-50 flex items-center justify-center shrink-0">

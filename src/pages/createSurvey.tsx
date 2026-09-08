@@ -781,10 +781,10 @@ function CreateSurvey() {
                   setSelectedId(question.id);
                 }
               }}
-              className={`bg-white rounded-2xl border shadow-sm overflow-hidden transition-shadow ${
+              className={`bg-white rounded-2xl border shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md hover:-translate-y-1 ${
                 selected
-                  ? "border-teal-200 border-l-4 border-l-teal-500"
-                  : "border-gray-100"
+                  ? "border-amber-200 border-l-4 border-l-amber-500"
+                  : "border-gray-100 hover:border-amber-200"
               }`}
             >
               <div className="p-4 sm:p-5">
@@ -1031,7 +1031,7 @@ function CreateSurvey() {
         </div>
       </div>
 
-      <div className="flex-1 flex min-h-0">
+      <div className="flex-1 flex min-h-0 animate-fade-in-up">
         {/* Left toolbox — desktop always, mobile via tab */}
         <aside
           className={`w-full lg:w-56 shrink-0 bg-white border-r border-gray-200 ${
@@ -1120,7 +1120,7 @@ function CreateSurvey() {
                 type="button"
                 onClick={handleSaveAndPublish}
                 disabled={saving !== null || !hydrated}
-                className="inline-flex items-center gap-2 bg-[#0B192C] text-white px-4 sm:px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-[#152a40] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                className="inline-flex items-center gap-2 bg-amber-500 text-white px-4 sm:px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-amber-600 transition-all hover:shadow-md hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {saving === "publish" ? (
                   <Loader2 className="w-4 h-4 animate-spin" />

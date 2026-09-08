@@ -78,7 +78,7 @@ export const AnalyticsSidebar: React.FC<AnalyticsSidebarProps> = ({
               <div className="flex items-center gap-2.5">
                 <Icon
                   className={`w-4 h-4 ${
-                    isActive ? "text-teal-400" : "text-gray-400"
+                    isActive ? "text-amber-500" : "text-gray-400"
                   }`}
                 />
                 <span>{item.label}</span>
@@ -87,7 +87,7 @@ export const AnalyticsSidebar: React.FC<AnalyticsSidebarProps> = ({
                 <span
                   className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                     isActive
-                      ? "bg-teal-500/20 text-teal-300"
+                      ? "bg-amber-500/20 text-amber-500"
                       : "bg-gray-100 text-gray-500"
                   }`}
                 >

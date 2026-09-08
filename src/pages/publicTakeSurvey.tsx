@@ -132,7 +132,7 @@ function PublicTakeSurvey() {
         <p className="text-[11px] text-gray-400">Public survey</p>
       </header>
 
-      <main className="flex-1 flex items-start justify-center p-4 sm:p-8">
+      <main className="flex-1 flex items-start justify-center p-4 sm:p-8 animate-fade-in-up">
         <div className="w-full max-w-xl bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
           <div className="px-5 sm:px-8 pt-6 sm:pt-8 pb-4 border-b border-gray-100">
             <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
@@ -184,7 +184,7 @@ function PublicTakeSurvey() {
               <button
                 type="button"
                 onClick={goNext}
-                className="flex-1 bg-[#0B192C] text-white text-sm font-medium py-3 rounded-xl hover:bg-[#152a40] transition-colors"
+                className="flex-1 bg-amber-500 text-white text-sm font-medium py-3 rounded-xl hover:bg-amber-600 transition-all duration-300 hover:shadow-md hover:-translate-y-0.5"
               >
                 {isLast ? "Submit" : "Next"}
               </button>

@@ -51,7 +51,7 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({ stats }) => {
         return (
           <div
             key={card.label}
-            className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 hover:shadow-md transition-shadow"
+            className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 hover:shadow-md hover:-translate-y-1 transition-all duration-300"
           >
             <div className="flex items-center justify-between gap-2 mb-2">
               <span className="text-xs text-gray-500 font-medium truncate">

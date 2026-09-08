@@ -15,7 +15,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
   action,
 }) => {
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex flex-col justify-between transition-all hover:shadow-md">
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex flex-col justify-between transition-all duration-300 hover:shadow-md hover:-translate-y-1">
       <div>
         <div className="flex items-start justify-between gap-3 mb-3">
           <div>

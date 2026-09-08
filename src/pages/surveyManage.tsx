@@ -153,7 +153,7 @@ function SurveyManage() {
     <div className="min-h-dvh bg-[#F4F6F8] font-sans text-sm flex flex-col">
       <Header />
 
-      <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
+      <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6 animate-fade-in-up">
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
           <div>
             <Link
@@ -195,9 +195,9 @@ function SurveyManage() {
           <div className="flex flex-wrap items-center gap-2 shrink-0">
             <Link
               to={`/analytics?id=${survey._id}`}
-              className="inline-flex items-center gap-2 rounded-xl bg-[#0B192C] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#152a40] transition-colors shadow-sm"
+              className="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-amber-600 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md"
             >
-              <BarChart3 className="w-4 h-4 text-teal-400" />
+              <BarChart3 className="w-4 h-4" />
               View Analytics
             </Link>
             {isPublished && (
