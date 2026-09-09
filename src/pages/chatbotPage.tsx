@@ -159,9 +159,9 @@ export default function ChatbotPage() {
     <div className="h-dvh bg-[#F4F6F8] font-sans text-sm flex flex-col overflow-hidden">
       <Header />
 
-      <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-4 flex flex-col min-h-0 animate-fade-in-up">
+      <main className="flex-1 max-w-5xl w-full mx-auto sm:px-6 sm:py-4 flex flex-col min-h-0 animate-fade-in-up">
         {/* Top Active Survey Selector */}
-        <div className="bg-white rounded-2xl border border-gray-100 p-3.5 shadow-sm mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
+        <div className="bg-white sm:rounded-2xl border-b sm:border border-gray-100 p-3 sm:p-3.5 shadow-sm sm:mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
           <div>
             <p className="text-[10px] font-bold tracking-[0.14em] text-gray-400 uppercase">
               Active Survey Analysis
@@ -192,9 +192,9 @@ export default function ChatbotPage() {
         </div>
 
         {/* Chat Area Container - Fixed height with flex-1 */}
-        <div className="flex-1 bg-white rounded-2xl border border-gray-100 shadow-sm flex flex-col overflow-hidden min-h-0">
+        <div className="flex-1 bg-white sm:rounded-2xl sm:border border-gray-100 shadow-sm flex flex-col overflow-hidden min-h-0">
           {/* Header Banner */}
-          <div className="bg-[#0B192C] text-white px-6 py-3.5 flex items-center justify-between shrink-0">
+          <div className="hidden sm:flex bg-[#0B192C] text-white px-6 py-3.5 items-center justify-between shrink-0">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-full bg-teal-500/20 text-teal-400 flex items-center justify-center border border-teal-500/30">
                 <Bot className="w-5 h-5" />
@@ -275,7 +275,7 @@ export default function ChatbotPage() {
           </div>
 
           {/* Suggested Prompt Chips */}
-          <div className="px-6 py-2.5 bg-gray-50/70 border-t border-gray-100 flex items-center gap-2 overflow-x-auto shrink-0">
+          <div className="px-4 sm:px-6 py-2.5 bg-gray-50/70 border-t border-gray-100 flex items-center gap-2 overflow-x-auto shrink-0">
             <span className="text-[11px] font-semibold text-gray-400 whitespace-nowrap">
               Suggestions:
             </span>
@@ -296,7 +296,7 @@ export default function ChatbotPage() {
           {/* Pure Text Input Controls */}
           <form
             onSubmit={handleSend}
-            className="p-3.5 bg-white border-t border-gray-100 flex items-center gap-3 shrink-0"
+            className="p-3 sm:p-3.5 bg-white border-t border-gray-100 flex items-center gap-3 shrink-0"
           >
             <input
               type="text"
@@ -316,7 +316,7 @@ export default function ChatbotPage() {
           </form>
         </div>
 
-        <p className="text-center text-[11px] text-gray-400 mt-2 shrink-0">
+        <p className="text-center text-[11px] text-gray-400 mt-2 mb-2 sm:mb-0 shrink-0">
           Sherpa AI provides text explanations based on survey response data.
         </p>
       </main>

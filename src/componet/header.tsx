@@ -228,9 +228,11 @@ function SurveyMenu({
   return (
     <div
       role="menu"
-      className={`absolute mt-3 w-[360px] max-w-[90vw] bg-white rounded-2xl border border-gray-100 shadow-xl overflow-hidden ${
-        align === "right" ? "right-0" : "left-1/2 -translate-x-1/2"
-      }`}
+      className={`z-50 mt-3 w-[360px] max-w-[95vw] bg-white rounded-2xl border border-gray-100 shadow-xl overflow-hidden
+        fixed top-16 left-1/2 -translate-x-1/2
+        sm:absolute sm:top-full sm:mt-3
+        ${align === "right" ? "sm:left-auto sm:right-0 sm:translate-x-0" : "sm:left-1/2 sm:-translate-x-1/2"}
+      `}
     >
       <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
         <p className="text-[10px] font-bold tracking-[0.14em] text-gray-400">
