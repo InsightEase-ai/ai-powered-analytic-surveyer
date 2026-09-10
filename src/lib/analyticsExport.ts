@@ -3,6 +3,7 @@ import {
   BorderStyle,
   Document,
   HeadingLevel,
+  ImageRun,
   Packer,
   Paragraph,
   ShadingType,
@@ -90,6 +91,156 @@ const PDF_MARGIN = 18;
 
 function sanitizeFilename(name: string): string {
   return name.replace(/[^a-z0-9-_]+/gi, "-").replace(/-+/g, "-") || "survey";
+}
+
+// ---------------------------------------------------------------------------
+// Canvas-based chart image rendering helpers
+// ---------------------------------------------------------------------------
+
+const CHART_PALETTE = [
+  "#0D9488", "#0B192C", "#3B82F6", "#F59E0B",
+  "#8B5CF6", "#10B981", "#6366F1", "#F43F5E",
+];
+
+function base64ToUint8Array(base64: string): Uint8Array {
+  // Strip data-URL prefix if present
+  const raw = base64.includes(",") ? base64.split(",")[1] : base64;
+  const binaryStr = atob(raw);
+  const bytes = new Uint8Array(binaryStr.length);
+  for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
+  return bytes;
+}
+
+function drawBarChartPng(
+  data: Array<{ option: string; count: number; percentage: number }>,
+  width = 320,
+  height = 180,
+): Uint8Array {
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d")!;
+
+  const padL = 40, padR = 10, padT = 16, padB = 48;
+  const chartW = width - padL - padR;
+  const chartH = height - padT - padB;
+
+  ctx.fillStyle = "#FFFFFF";
+  ctx.fillRect(0, 0, width, height);
+
+  const maxCount = Math.max(...data.map((d) => d.count), 1);
+  const barCount = data.length;
+  const groupW = chartW / barCount;
+  const barW = Math.max(groupW * 0.55, 4);
+
+  // Y-axis gridlines
+  const gridLines = 4;
+  for (let i = 0; i <= gridLines; i++) {
+    const y = padT + chartH - (i / gridLines) * chartH;
+    ctx.beginPath();
+    ctx.strokeStyle = "#E5E7EB";
+    ctx.lineWidth = 0.5;
+    ctx.moveTo(padL, y);
+    ctx.lineTo(padL + chartW, y);
+    ctx.stroke();
+    const val = Math.round((i / gridLines) * maxCount);
+    ctx.fillStyle = "#6B7280";
+    ctx.font = "9px sans-serif";
+    ctx.textAlign = "right";
+    ctx.fillText(String(val), padL - 3, y + 3);
+  }
+
+  // Bars
+  data.forEach((d, i) => {
+    const x = padL + i * groupW + (groupW - barW) / 2;
+    const barH = maxCount > 0 ? (d.count / maxCount) * chartH : 0;
+    const y = padT + chartH - barH;
+    ctx.fillStyle = CHART_PALETTE[i % CHART_PALETTE.length];
+    ctx.fillRect(x, y, barW, barH);
+
+    // Percentage label on top
+    ctx.fillStyle = "#374151";
+    ctx.font = "bold 8px sans-serif";
+    ctx.textAlign = "center";
+    if (d.percentage > 0) ctx.fillText(`${d.percentage}%`, x + barW / 2, y - 3);
+
+    // X-axis label (truncated)
+    const label = d.option.length > 8 ? d.option.slice(0, 7) + "…" : d.option;
+    ctx.fillStyle = "#6B7280";
+    ctx.font = "8px sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText(label, x + barW / 2, padT + chartH + 12);
+  });
+
+  // Axes
+  ctx.beginPath();
+  ctx.strokeStyle = "#9CA3AF";
+  ctx.lineWidth = 1;
+  ctx.moveTo(padL, padT);
+  ctx.lineTo(padL, padT + chartH);
+  ctx.lineTo(padL + chartW, padT + chartH);
+  ctx.stroke();
+
+  return base64ToUint8Array(canvas.toDataURL("image/png"));
+}
+
+function drawPieChartPng(
+  data: Array<{ name: string; value: number }>,
+  width = 200,
+  height = 180,
+): Uint8Array {
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d")!;
+
+  ctx.fillStyle = "#FFFFFF";
+  ctx.fillRect(0, 0, width, height);
+
+  const total = data.reduce((s, d) => s + d.value, 0);
+  const legendH = data.length * 14 + 4;
+  const pieH = height - legendH;
+  const cx = width / 2;
+  const cy = pieH / 2;
+  const radius = Math.min(width * 0.38, pieH * 0.44);
+
+  if (total === 0) {
+    ctx.fillStyle = "#E5E7EB";
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius, 0, 2 * Math.PI);
+    ctx.fill();
+  } else {
+    let startAngle = -Math.PI / 2;
+    data.forEach((d, i) => {
+      const slice = (d.value / total) * 2 * Math.PI;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.arc(cx, cy, radius, startAngle, startAngle + slice);
+      ctx.closePath();
+      ctx.fillStyle = CHART_PALETTE[i % CHART_PALETTE.length];
+      ctx.fill();
+      ctx.strokeStyle = "#FFFFFF";
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      startAngle += slice;
+    });
+  }
+
+  // Legend
+  data.forEach((d, i) => {
+    const lx = 8;
+    const ly = pieH + 6 + i * 14;
+    ctx.fillStyle = CHART_PALETTE[i % CHART_PALETTE.length];
+    ctx.fillRect(lx, ly, 10, 9);
+    ctx.fillStyle = "#374151";
+    ctx.font = "8px sans-serif";
+    ctx.textAlign = "left";
+    const pct = total > 0 ? Math.round((d.value / total) * 100) : 0;
+    const label = `${d.name.length > 14 ? d.name.slice(0, 13) + "…" : d.name} (${pct}%)`;
+    ctx.fillText(label, lx + 13, ly + 8);
+  });
+
+  return base64ToUint8Array(canvas.toDataURL("image/png"));
 }
 
 function downloadBlob(filename: string, content: Blob) {
@@ -301,6 +452,7 @@ function buildAnalyticsDocument(payload: AnalyticsExportPayload): Document {
         }),
       ],
     }),
+    // ── Executive Summary ───────────────────────────────────────────────────
     heading("Executive Summary", HeadingLevel.HEADING_2),
     bodyText(
       "Overview of survey performance, response volume, and answer completeness across all collected submissions.",
@@ -314,85 +466,128 @@ function buildAnalyticsDocument(payload: AnalyticsExportPayload): Document {
     }),
   ];
 
-  if (payload.barCharts.length > 0) {
-    children.push(heading("Bar Chart Analysis", HeadingLevel.HEADING_2));
+  // ── Combined Question Analysis (Bar + Pie per question) ────────────────────
+  // Match bar charts and pie charts by index — they are generated for the same
+  // set of questions in the same order.
+  const questionCount = Math.max(payload.barCharts.length, payload.pieCharts.length);
+
+  if (questionCount > 0) {
+    children.push(heading("Question Analysis", HeadingLevel.HEADING_2));
     children.push(
       bodyText(
-        "Distribution of answers for each survey question, showing response counts and percentages.",
+        "For each survey question the response distribution table is shown, followed by a bar chart and pie chart visualisation.",
         { color: COLORS.gray500, spacingAfter: 240 },
       ),
     );
 
-    payload.barCharts.forEach((chart) => {
-      children.push(heading(chart.questionTitle, HeadingLevel.HEADING_3));
-      children.push(
-        bodyText(`${chart.questionType} · ${chart.totalAnswers} total answers`, {
-          color: COLORS.gray500,
-          spacingAfter: 160,
-        }),
-      );
-      children.push(
-        buildStyledTable(
-          ["Option", "Count", "Percentage"],
-          chart.data.map((row) => [row.option, String(row.count), `${row.percentage}%`]),
-        ),
-      );
-      children.push(insightCallout(chart.interpretation));
-    });
+    for (let qi = 0; qi < questionCount; qi++) {
+      const bar = payload.barCharts[qi];
+      const pie = payload.pieCharts[qi];
+      const questionTitle = bar?.questionTitle ?? pie?.questionTitle ?? `Question ${qi + 1}`;
+      const totalAnswers = bar?.totalAnswers ?? pie?.totalAnswers ?? 0;
+      const interpretation = bar?.interpretation ?? pie?.interpretation ?? "";
+
+      // Question heading
+      children.push(heading(questionTitle, HeadingLevel.HEADING_3));
+      if (bar) {
+        children.push(
+          bodyText(`${bar.questionType} · ${totalAnswers} total answers`, {
+            color: COLORS.gray500,
+            spacingAfter: 160,
+          }),
+        );
+      }
+
+      // Unified data table: Option | Count | Percentage
+      if (bar && bar.data.length > 0) {
+        children.push(
+          buildStyledTable(
+            ["Option", "Count", "Percentage"],
+            bar.data.map((row) => [row.option, String(row.count), `${row.percentage}%`]),
+          ),
+        );
+      } else if (pie && pie.data.length > 0) {
+        children.push(
+          buildStyledTable(
+            ["Answer", "Count"],
+            pie.data.map((row) => [row.name, String(row.value)]),
+          ),
+        );
+      }
+
+      new Paragraph({ spacing: { after: 120 }, children: [] });
+
+      // Render chart images
+      try {
+        const barData = bar?.data ?? pie?.data.map((d) => ({ option: d.name, count: d.value, percentage: 0 })) ?? [];
+        const pieData = pie?.data ?? bar?.data.map((d) => ({ name: d.option, value: d.count })) ?? [];
+
+        const barPng = drawBarChartPng(barData);
+        const piePng = drawPieChartPng(pieData);
+
+        // Place images side-by-side in a 2-column table
+        const imgTable = new Table({
+          width: { size: 100, type: WidthType.PERCENTAGE },
+          rows: [
+            new TableRow({
+              children: [
+                new TableCell({
+                  width: { size: 60, type: WidthType.PERCENTAGE },
+                  margins: { top: 80, bottom: 80, left: 0, right: 80 },
+                  children: [
+                    new Paragraph({
+                      spacing: { after: 60 },
+                      children: [
+                        new TextRun({ text: "Bar Chart", bold: true, color: COLORS.gray500, size: 16 }),
+                      ],
+                    }),
+                    new Paragraph({
+                      children: [
+                        new ImageRun({
+                          type: "png",
+                          data: barPng,
+                          transformation: { width: 240, height: 135 },
+                        }),
+                      ],
+                    }),
+                  ],
+                }),
+                new TableCell({
+                  width: { size: 40, type: WidthType.PERCENTAGE },
+                  margins: { top: 80, bottom: 80, left: 80, right: 0 },
+                  children: [
+                    new Paragraph({
+                      spacing: { after: 60 },
+                      children: [
+                        new TextRun({ text: "Pie Chart", bold: true, color: COLORS.gray500, size: 16 }),
+                      ],
+                    }),
+                    new Paragraph({
+                      children: [
+                        new ImageRun({
+                          type: "png",
+                          data: piePng,
+                          transformation: { width: 150, height: 135 },
+                        }),
+                      ],
+                    }),
+                  ],
+                }),
+              ],
+            }),
+          ],
+        });
+
+        children.push(imgTable);
+      } catch {
+        // Canvas rendering may be unavailable in some environments; skip images gracefully
+      }
+
+      children.push(insightCallout(interpretation));
+    }
   }
 
-  if (payload.pieCharts.length > 0) {
-    children.push(heading("Pie Chart Analysis", HeadingLevel.HEADING_2));
-    children.push(
-      bodyText(
-        "Categorical breakdowns showing how responses are distributed across answer choices.",
-        { color: COLORS.gray500, spacingAfter: 240 },
-      ),
-    );
-
-    payload.pieCharts.forEach((chart) => {
-      children.push(heading(chart.questionTitle, HeadingLevel.HEADING_3));
-      children.push(
-        bodyText(`${chart.totalAnswers} total answers`, {
-          color: COLORS.gray500,
-          spacingAfter: 160,
-        }),
-      );
-      children.push(
-        buildStyledTable(
-          ["Answer", "Count"],
-          chart.data.map((row) => [row.name, String(row.value)]),
-        ),
-      );
-      children.push(insightCallout(chart.interpretation));
-    });
-  }
-
-  if (payload.lineCharts.length > 0) {
-    children.push(heading("Trend Analysis", HeadingLevel.HEADING_2));
-    children.push(
-      bodyText(
-        "Time-based patterns in response volume and answer completeness over the survey period.",
-        { color: COLORS.gray500, spacingAfter: 240 },
-      ),
-    );
-
-    payload.lineCharts.forEach((chart) => {
-      children.push(heading(chart.chartTitle, HeadingLevel.HEADING_3));
-      children.push(
-        buildStyledTable(
-          ["Date", "Responses", "Answer Rate"],
-          chart.data.map((row) => [
-            row.date,
-            String(row.responses),
-            row.completionRate > 0 ? `${row.completionRate}%` : "—",
-          ]),
-        ),
-      );
-      children.push(insightCallout(chart.interpretation));
-    });
-  }
-
+  // ── Recent Submissions ──────────────────────────────────────────────────────
   if (payload.responseTable.length > 0) {
     children.push(heading("Recent Submissions", HeadingLevel.HEADING_2));
     children.push(
@@ -587,78 +782,66 @@ function buildAnalyticsPdf(payload: AnalyticsExportPayload): PdfDoc {
   ]);
   y = addPdfBodyText(doc, y, `Survey ID: ${payload.surveyId}`);
 
-  if (payload.barCharts.length > 0) {
-    y = addPdfSectionHeading(doc, y, "Bar Chart Analysis");
+  // ── Combined Question Analysis (Bar + Pie per question) ────────────────────
+  const questionCount = Math.max(payload.barCharts.length, payload.pieCharts.length);
+  if (questionCount > 0) {
+    y = addPdfSectionHeading(doc, y, "Question Analysis");
     y = addPdfBodyText(
       doc,
       y,
-      "Distribution of answers for each survey question, showing response counts and percentages.",
+      "Response distribution for each survey question, with bar and pie chart visualisations.",
     );
 
-    payload.barCharts.forEach((chart) => {
-      y = addPdfSubheading(doc, y, chart.questionTitle);
-      y = addPdfBodyText(
-        doc,
-        y,
-        `${chart.questionType} · ${chart.totalAnswers} total answers`,
-      );
-      y = addPdfDataTable(
-        doc,
-        y,
-        ["Option", "Count", "Percentage"],
-        chart.data.map((row) => [
-          row.option,
-          String(row.count),
-          `${row.percentage}%`,
-        ]),
-      );
-      y = addPdfInsight(doc, y, chart.interpretation);
-    });
-  }
+    for (let qi = 0; qi < questionCount; qi++) {
+      const bar = payload.barCharts[qi];
+      const pie = payload.pieCharts[qi];
+      const questionTitle = bar?.questionTitle ?? pie?.questionTitle ?? `Question ${qi + 1}`;
+      const interpretation = bar?.interpretation ?? pie?.interpretation ?? "";
 
-  if (payload.pieCharts.length > 0) {
-    y = addPdfSectionHeading(doc, y, "Pie Chart Analysis");
-    y = addPdfBodyText(
-      doc,
-      y,
-      "Categorical breakdowns showing how responses are distributed across answer choices.",
-    );
+      y = addPdfSubheading(doc, y, questionTitle);
+      if (bar) {
+        y = addPdfBodyText(doc, y, `${bar.questionType} · ${bar.totalAnswers} total answers`);
+        y = addPdfDataTable(
+          doc,
+          y,
+          ["Option", "Count", "Percentage"],
+          bar.data.map((row) => [row.option, String(row.count), `${row.percentage}%`]),
+        );
+      } else if (pie) {
+        y = addPdfBodyText(doc, y, `${pie.totalAnswers} total answers`);
+        y = addPdfDataTable(
+          doc,
+          y,
+          ["Answer", "Count"],
+          pie.data.map((row) => [row.name, String(row.value)]),
+        );
+      }
 
-    payload.pieCharts.forEach((chart) => {
-      y = addPdfSubheading(doc, y, chart.questionTitle);
-      y = addPdfBodyText(doc, y, `${chart.totalAnswers} total answers`);
-      y = addPdfDataTable(
-        doc,
-        y,
-        ["Answer", "Count"],
-        chart.data.map((row) => [row.name, String(row.value)]),
-      );
-      y = addPdfInsight(doc, y, chart.interpretation);
-    });
-  }
+      // Embed bar chart image
+      try {
+        const barData = bar?.data ?? pie?.data.map((d) => ({ option: d.name, count: d.value, percentage: 0 })) ?? [];
+        const pieData = pie?.data ?? bar?.data.map((d) => ({ name: d.option, value: d.count })) ?? [];
 
-  if (payload.lineCharts.length > 0) {
-    y = addPdfSectionHeading(doc, y, "Trend Analysis");
-    y = addPdfBodyText(
-      doc,
-      y,
-      "Time-based patterns in response volume and answer completeness over the survey period.",
-    );
+        const barPng = drawBarChartPng(barData, 320, 160);
+        const piePng = drawPieChartPng(pieData, 200, 160);
 
-    payload.lineCharts.forEach((chart) => {
-      y = addPdfSubheading(doc, y, chart.chartTitle);
-      y = addPdfDataTable(
-        doc,
-        y,
-        ["Date", "Responses", "Answer Rate"],
-        chart.data.map((row) => [
-          row.date,
-          String(row.responses),
-          row.completionRate > 0 ? `${row.completionRate}%` : "—",
-        ]),
-      );
-      y = addPdfInsight(doc, y, chart.interpretation);
-    });
+        const contentWidth = getPdfContentWidth(doc);
+        const imgBarW = contentWidth * 0.58;
+        const imgPieW = contentWidth * 0.38;
+        const imgH = 45; // mm
+
+        y = ensurePdfSpace(doc, y, imgH + 8);
+        // Bar chart on the left
+        doc.addImage(barPng, "PNG", PDF_MARGIN, y, imgBarW, imgH);
+        // Pie chart on the right
+        doc.addImage(piePng, "PNG", PDF_MARGIN + imgBarW + 4, y, imgPieW, imgH);
+        y += imgH + 5;
+      } catch {
+        // Canvas or addImage unavailable; skip images
+      }
+
+      y = addPdfInsight(doc, y, interpretation);
+    }
   }
 
   if (payload.responseTable.length > 0) {
