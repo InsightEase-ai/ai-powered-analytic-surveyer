@@ -12,6 +12,7 @@ import {
   TableRow,
   TextRun,
   WidthType,
+  convertMillimetersToTwip,
 } from "docx";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -113,69 +114,80 @@ function base64ToUint8Array(base64: string): Uint8Array {
 
 function drawBarChartPng(
   data: Array<{ option: string; count: number; percentage: number }>,
-  width = 320,
-  height = 180,
+  displayW = 390,
+  displayH = 200,
 ): Uint8Array {
+  // Render at 2× resolution for sharp, readable text
+  const DPR = 2;
+  const width = displayW * DPR;
+  const height = displayH * DPR;
+
   const canvas = document.createElement("canvas");
   canvas.width = width;
   canvas.height = height;
   const ctx = canvas.getContext("2d")!;
+  ctx.scale(DPR, DPR);
 
-  const padL = 40, padR = 10, padT = 16, padB = 48;
-  const chartW = width - padL - padR;
-  const chartH = height - padT - padB;
+  const padL = 46, padR = 14, padT = 22, padB = 56;
+  const chartW = displayW - padL - padR;
+  const chartH = displayH - padT - padB;
 
+  // White background
   ctx.fillStyle = "#FFFFFF";
-  ctx.fillRect(0, 0, width, height);
+  ctx.fillRect(0, 0, displayW, displayH);
 
   const maxCount = Math.max(...data.map((d) => d.count), 1);
-  const barCount = data.length;
+  const barCount = Math.max(data.length, 1);
   const groupW = chartW / barCount;
-  const barW = Math.max(groupW * 0.55, 4);
+  const barW = Math.max(groupW * 0.6, 6);
 
-  // Y-axis gridlines
+  // Y-axis gridlines + labels
   const gridLines = 4;
   for (let i = 0; i <= gridLines; i++) {
     const y = padT + chartH - (i / gridLines) * chartH;
     ctx.beginPath();
     ctx.strokeStyle = "#E5E7EB";
-    ctx.lineWidth = 0.5;
+    ctx.lineWidth = 0.8;
     ctx.moveTo(padL, y);
     ctx.lineTo(padL + chartW, y);
     ctx.stroke();
     const val = Math.round((i / gridLines) * maxCount);
     ctx.fillStyle = "#6B7280";
-    ctx.font = "9px sans-serif";
+    ctx.font = "bold 11px 'Arial', sans-serif";
     ctx.textAlign = "right";
-    ctx.fillText(String(val), padL - 3, y + 3);
+    ctx.fillText(String(val), padL - 5, y + 4);
   }
 
-  // Bars
+  // Bars + labels
   data.forEach((d, i) => {
     const x = padL + i * groupW + (groupW - barW) / 2;
     const barH = maxCount > 0 ? (d.count / maxCount) * chartH : 0;
     const y = padT + chartH - barH;
+
+    // Bar with rounded top feel via rect
     ctx.fillStyle = CHART_PALETTE[i % CHART_PALETTE.length];
     ctx.fillRect(x, y, barW, barH);
 
-    // Percentage label on top
-    ctx.fillStyle = "#374151";
-    ctx.font = "bold 8px sans-serif";
-    ctx.textAlign = "center";
-    if (d.percentage > 0) ctx.fillText(`${d.percentage}%`, x + barW / 2, y - 3);
+    // Percentage label above bar
+    if (d.percentage > 0) {
+      ctx.fillStyle = "#111827";
+      ctx.font = "bold 11px 'Arial', sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(`${d.percentage}%`, x + barW / 2, Math.max(y - 5, padT + 10));
+    }
 
-    // X-axis label (truncated)
-    const label = d.option.length > 8 ? d.option.slice(0, 7) + "…" : d.option;
-    ctx.fillStyle = "#6B7280";
-    ctx.font = "8px sans-serif";
+    // X-axis label (up to 11 chars)
+    const label = d.option.length > 11 ? d.option.slice(0, 10) + "…" : d.option;
+    ctx.fillStyle = "#374151";
+    ctx.font = "11px 'Arial', sans-serif";
     ctx.textAlign = "center";
-    ctx.fillText(label, x + barW / 2, padT + chartH + 12);
+    ctx.fillText(label, x + barW / 2, padT + chartH + 15);
   });
 
   // Axes
   ctx.beginPath();
-  ctx.strokeStyle = "#9CA3AF";
-  ctx.lineWidth = 1;
+  ctx.strokeStyle = "#6B7280";
+  ctx.lineWidth = 1.5;
   ctx.moveTo(padL, padT);
   ctx.lineTo(padL, padT + chartH);
   ctx.lineTo(padL + chartW, padT + chartH);
@@ -186,23 +198,29 @@ function drawBarChartPng(
 
 function drawPieChartPng(
   data: Array<{ name: string; value: number }>,
-  width = 200,
-  height = 180,
+  displayW = 250,
+  displayH = 200,
 ): Uint8Array {
+  // Render at 2× resolution for sharp, readable text
+  const DPR = 2;
+  const width = displayW * DPR;
+  const height = displayH * DPR;
+
   const canvas = document.createElement("canvas");
   canvas.width = width;
   canvas.height = height;
   const ctx = canvas.getContext("2d")!;
+  ctx.scale(DPR, DPR);
 
   ctx.fillStyle = "#FFFFFF";
-  ctx.fillRect(0, 0, width, height);
+  ctx.fillRect(0, 0, displayW, displayH);
 
   const total = data.reduce((s, d) => s + d.value, 0);
-  const legendH = data.length * 14 + 4;
-  const pieH = height - legendH;
-  const cx = width / 2;
+  const legendH = data.length * 18 + 8;
+  const pieH = displayH - legendH;
+  const cx = displayW / 2;
   const cy = pieH / 2;
-  const radius = Math.min(width * 0.38, pieH * 0.44);
+  const radius = Math.min(displayW * 0.38, pieH * 0.44);
 
   if (total === 0) {
     ctx.fillStyle = "#E5E7EB";
@@ -220,24 +238,24 @@ function drawPieChartPng(
       ctx.fillStyle = CHART_PALETTE[i % CHART_PALETTE.length];
       ctx.fill();
       ctx.strokeStyle = "#FFFFFF";
-      ctx.lineWidth = 1.5;
+      ctx.lineWidth = 2;
       ctx.stroke();
       startAngle += slice;
     });
   }
 
-  // Legend
+  // Legend with bigger, bolder text
   data.forEach((d, i) => {
     const lx = 8;
-    const ly = pieH + 6 + i * 14;
+    const ly = pieH + 8 + i * 18;
     ctx.fillStyle = CHART_PALETTE[i % CHART_PALETTE.length];
-    ctx.fillRect(lx, ly, 10, 9);
-    ctx.fillStyle = "#374151";
-    ctx.font = "8px sans-serif";
+    ctx.fillRect(lx, ly, 12, 11);
+    ctx.fillStyle = "#111827";
+    ctx.font = "11px 'Arial', sans-serif";
     ctx.textAlign = "left";
     const pct = total > 0 ? Math.round((d.value / total) * 100) : 0;
-    const label = `${d.name.length > 14 ? d.name.slice(0, 13) + "…" : d.name} (${pct}%)`;
-    ctx.fillText(label, lx + 13, ly + 8);
+    const label = `${d.name.length > 18 ? d.name.slice(0, 17) + "…" : d.name} (${pct}%)`;
+    ctx.fillText(label, lx + 16, ly + 10);
   });
 
   return base64ToUint8Array(canvas.toDataURL("image/png"));
@@ -522,52 +540,95 @@ function buildAnalyticsDocument(payload: AnalyticsExportPayload): Document {
         const barData = bar?.data ?? pie?.data.map((d) => ({ option: d.name, count: d.value, percentage: 0 })) ?? [];
         const pieData = pie?.data ?? bar?.data.map((d) => ({ name: d.option, value: d.count })) ?? [];
 
-        const barPng = drawBarChartPng(barData);
-        const piePng = drawPieChartPng(pieData);
+        // A4 content width ≈ 190 mm; bar gets 61%, pie gets 37%, 2% gutter
+        const barDisplayPx = 390;
+        const pieDisplayPx = 250;
+        const barPng = drawBarChartPng(barData, barDisplayPx, 200);
+        const piePng = drawPieChartPng(pieData, pieDisplayPx, 200);
 
-        // Place images side-by-side in a 2-column table
+        // Convert mm to twips for precise sizing (1 mm = 56.7 twips)
+        const barW_mm  = 116;  // ~61% of 190 mm content width
+        const pieW_mm  = 72;   // ~37%
+        const imgH_mm  = 56;
+
+        const noBorder = { color: "FFFFFF", size: 0, style: BorderStyle.NONE };
+
+        // Place images side-by-side in a borderless 2-column table that spans full width
         const imgTable = new Table({
           width: { size: 100, type: WidthType.PERCENTAGE },
+          borders: {
+            top: noBorder, bottom: noBorder,
+            left: noBorder, right: noBorder,
+            insideH: noBorder, insideV: noBorder,
+          },
           rows: [
             new TableRow({
               children: [
+                // ── Bar Chart cell (left, wider) ──────────────────────────
                 new TableCell({
-                  width: { size: 60, type: WidthType.PERCENTAGE },
-                  margins: { top: 80, bottom: 80, left: 0, right: 80 },
+                  width: { size: 62, type: WidthType.PERCENTAGE },
+                  margins: { top: 0, bottom: 0, left: 0, right: convertMillimetersToTwip(3) },
+                  borders: {
+                    top: noBorder, bottom: noBorder,
+                    left: noBorder, right: noBorder,
+                  },
                   children: [
                     new Paragraph({
-                      spacing: { after: 60 },
+                      spacing: { after: 80 },
                       children: [
-                        new TextRun({ text: "Bar Chart", bold: true, color: COLORS.gray500, size: 16 }),
+                        new TextRun({
+                          text: "Bar Chart",
+                          bold: true,
+                          color: COLORS.gray700,
+                          size: 18,
+                        }),
                       ],
                     }),
                     new Paragraph({
+                      spacing: { after: 0 },
                       children: [
                         new ImageRun({
                           type: "png",
                           data: barPng,
-                          transformation: { width: 240, height: 135 },
+                          transformation: {
+                            width:  convertMillimetersToTwip(barW_mm) / 914400 * 96 | 0 || Math.round(barW_mm * 3.78),
+                            height: convertMillimetersToTwip(imgH_mm) / 914400 * 96 | 0 || Math.round(imgH_mm  * 3.78),
+                          },
                         }),
                       ],
                     }),
                   ],
                 }),
+                // ── Pie Chart cell (right, narrower) ─────────────────────
                 new TableCell({
-                  width: { size: 40, type: WidthType.PERCENTAGE },
-                  margins: { top: 80, bottom: 80, left: 80, right: 0 },
+                  width: { size: 38, type: WidthType.PERCENTAGE },
+                  margins: { top: 0, bottom: 0, left: convertMillimetersToTwip(3), right: 0 },
+                  borders: {
+                    top: noBorder, bottom: noBorder,
+                    left: noBorder, right: noBorder,
+                  },
                   children: [
                     new Paragraph({
-                      spacing: { after: 60 },
+                      spacing: { after: 80 },
                       children: [
-                        new TextRun({ text: "Pie Chart", bold: true, color: COLORS.gray500, size: 16 }),
+                        new TextRun({
+                          text: "Pie Chart",
+                          bold: true,
+                          color: COLORS.gray700,
+                          size: 18,
+                        }),
                       ],
                     }),
                     new Paragraph({
+                      spacing: { after: 0 },
                       children: [
                         new ImageRun({
                           type: "png",
                           data: piePng,
-                          transformation: { width: 150, height: 135 },
+                          transformation: {
+                            width:  Math.round(pieW_mm  * 3.78),
+                            height: Math.round(imgH_mm  * 3.78),
+                          },
                         }),
                       ],
                     }),
@@ -578,6 +639,7 @@ function buildAnalyticsDocument(payload: AnalyticsExportPayload): Document {
           ],
         });
 
+        children.push(new Paragraph({ spacing: { after: 120 }, children: [] }));
         children.push(imgTable);
       } catch {
         // Canvas rendering may be unavailable in some environments; skip images gracefully
