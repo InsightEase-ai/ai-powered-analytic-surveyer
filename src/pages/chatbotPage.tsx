@@ -2,7 +2,16 @@ import React, { useState, useRef, useEffect, useMemo } from "react";
 import { useQuery, useAction } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import Header from "../componet/header";
-import { Send, Bot, User, Sparkles, ChevronDown } from "lucide-react";
+import {
+  Send,
+  Bot,
+  User,
+  Sparkles,
+  ChevronDown,
+  Layers,
+  MessageSquare,
+  FileText,
+} from "lucide-react";
 import ReactMarkdown from "react-markdown";
 
 interface Message {
@@ -161,9 +170,9 @@ export default function ChatbotPage() {
     <div className="h-dvh bg-[#F4F6F8] font-sans text-sm flex flex-col overflow-hidden">
       <Header />
 
-      <main className="flex-1 max-w-5xl w-full mx-auto sm:px-6 sm:py-4 flex flex-col min-h-0 animate-fade-in-up">
-        {/* Top Active Survey Selector */}
-        <div className="bg-white sm:rounded-2xl border-b sm:border border-gray-100 p-3 sm:p-3.5 shadow-sm sm:mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
+      <main className="flex-1 max-w-5xl lg:max-w-7xl xl:max-w-[1440px] w-full mx-auto sm:px-6 sm:py-4 flex flex-col lg:flex-row gap-0 sm:gap-4 lg:gap-5 min-h-0 animate-fade-in-up">
+        {/* Top Active Survey Selector (Mobile & Small Screens ONLY - UNCHANGED) */}
+        <div className="bg-white sm:rounded-2xl border-b sm:border border-gray-100 p-3 sm:p-3.5 shadow-sm sm:mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0 lg:hidden">
           <div>
             <p className="text-[10px] font-bold tracking-[0.14em] text-gray-400 uppercase">
               Active Survey Analysis
@@ -193,8 +202,149 @@ export default function ChatbotPage() {
           </div>
         </div>
 
-        {/* Chat Area Container - Fixed height with flex-1 */}
-        <div className="flex-1 bg-white sm:rounded-2xl sm:border border-gray-100 shadow-sm flex flex-col overflow-hidden min-h-0">
+        {/* Left Sidebar: Active Survey Analysis Panel (Wider screens - lg+) */}
+        <aside className="hidden lg:flex lg:w-80 xl:w-88 flex-col bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden min-h-0 shrink-0">
+          {/* Sidebar Header */}
+          <div className="p-4 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between shrink-0">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center border border-teal-100/80">
+                <Layers className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="text-[10px] font-bold tracking-[0.12em] text-gray-400 uppercase">
+                  Context Source
+                </p>
+                <h3 className="text-xs font-bold text-gray-900">
+                  Active Survey Analysis
+                </h3>
+              </div>
+            </div>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-teal-50 text-teal-700 border border-teal-100/80 flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-teal-500 animate-pulse" />
+              Live
+            </span>
+          </div>
+
+          {/* Survey Selector Dropdown */}
+          <div className="p-4 border-b border-gray-100 shrink-0">
+            <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">
+              Select Active Survey
+            </label>
+            <div className="relative">
+              <select
+                value={selectedSurveyId}
+                onChange={(e) => setSelectedSurveyId(e.target.value)}
+                className="w-full appearance-none bg-gray-50 hover:bg-gray-100/70 border border-gray-200 text-gray-900 text-xs font-semibold rounded-xl px-3.5 py-2.5 pr-8 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 cursor-pointer transition-all shadow-2xs"
+              >
+                {allSurveys.length > 0 ? (
+                  allSurveys.map((s) => (
+                    <option key={s._id} value={s._id}>
+                      {s.title}
+                    </option>
+                  ))
+                ) : (
+                  <option value="">No surveys yet</option>
+                )}
+              </select>
+              <ChevronDown className="w-4 h-4 text-gray-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
+          </div>
+
+          {/* Survey Meta & Prompt Ideas (Scrollable Area) */}
+          <div className="flex-1 p-4 overflow-y-auto space-y-4 min-h-0">
+            {/* Active Survey Summary Card */}
+            <div className="bg-gray-50/70 rounded-xl p-3.5 border border-gray-100">
+              <div className="flex items-start justify-between gap-2 mb-1.5">
+                <h4 className="text-xs font-bold text-gray-900 line-clamp-2">
+                  {surveyTitle}
+                </h4>
+                {activeSurvey?.status && (
+                  <span
+                    className={`text-[9px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider shrink-0 ${
+                      activeSurvey.status === "published"
+                        ? "bg-teal-50 text-teal-700 border border-teal-200"
+                        : activeSurvey.status === "closed"
+                        ? "bg-amber-50 text-amber-700 border border-amber-200"
+                        : "bg-gray-100 text-gray-600"
+                    }`}
+                  >
+                    {activeSurvey.status === "published"
+                      ? "Open"
+                      : activeSurvey.status === "closed"
+                      ? "Closed"
+                      : "Draft"}
+                  </span>
+                )}
+              </div>
+
+              {activeSurvey?.description ? (
+                <p className="text-[11px] text-gray-500 line-clamp-3 leading-relaxed mb-3">
+                  {activeSurvey.description}
+                </p>
+              ) : (
+                <p className="text-[11px] text-gray-400 italic mb-3">
+                  No survey description provided
+                </p>
+              )}
+
+              {/* Key Survey Metric Counters */}
+              <div className="grid grid-cols-2 gap-2 pt-2.5 border-t border-gray-200/60">
+                <div className="bg-white p-2.5 rounded-lg border border-gray-100 shadow-2xs">
+                  <div className="flex items-center gap-1.5 text-gray-400 text-[10px] font-medium">
+                    <MessageSquare className="w-3.5 h-3.5 text-teal-600" />
+                    Responses
+                  </div>
+                  <p className="text-sm font-bold text-gray-900 mt-1">
+                    {realResponses.length}
+                  </p>
+                </div>
+
+                <div className="bg-white p-2.5 rounded-lg border border-gray-100 shadow-2xs">
+                  <div className="flex items-center gap-1.5 text-gray-400 text-[10px] font-medium">
+                    <FileText className="w-3.5 h-3.5 text-amber-500" />
+                    Questions
+                  </div>
+                  <p className="text-sm font-bold text-gray-900 mt-1">
+                    {activeSurvey?.questions
+                      ? activeSurvey.questions.filter((q) => q.type !== "page_break").length
+                      : 0}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Suggested Analytical Inquiries */}
+            <div className="space-y-2">
+              <p className="text-[10px] font-bold tracking-[0.12em] text-gray-400 uppercase">
+                Suggested Inquiries
+              </p>
+              <div className="space-y-1.5">
+                {suggestedQuestions.map((q) => (
+                  <button
+                    key={q}
+                    type="button"
+                    onClick={() => {
+                      setInput(q);
+                    }}
+                    className="w-full text-left p-2.5 rounded-xl border border-gray-200 bg-white hover:border-amber-400 hover:bg-amber-50/20 text-xs text-gray-700 transition-all duration-200 group flex items-center justify-between shadow-2xs"
+                  >
+                    <span className="line-clamp-2 pr-2 leading-relaxed">{q}</span>
+                    <Sparkles className="w-3.5 h-3.5 text-gray-300 group-hover:text-amber-500 shrink-0 transition-colors" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Sidebar Footer Indicator */}
+          <div className="p-3.5 bg-gray-50/80 border-t border-gray-100 shrink-0 flex items-center gap-2 text-[11px] text-gray-500">
+            <span className="w-2 h-2 rounded-full bg-teal-500 shrink-0" />
+            <span className="truncate">Grounded in verified survey dataset</span>
+          </div>
+        </aside>
+
+        {/* Chat Area Container - Spans full height on wider screens */}
+        <div className="flex-1 bg-white sm:rounded-2xl sm:border border-gray-100 shadow-sm flex flex-col overflow-hidden min-h-0 h-full">
           {/* Header Banner */}
           <div className="hidden sm:flex bg-[#0B192C] text-white px-6 py-3.5 items-center justify-between shrink-0">
             <div className="flex items-center gap-3">
@@ -253,16 +403,30 @@ export default function ChatbotPage() {
                     {msg.sender === "bot" ? (
                       <ReactMarkdown
                         components={{
-                          strong: ({node, ...props}) => <strong className="font-bold text-teal-700" {...props} />,
-                          h1: ({node, ...props}) => <h1 className="text-lg font-bold mt-3 mb-2 text-gray-900" {...props} />,
-                          h2: ({node, ...props}) => <h2 className="text-base font-bold mt-3 mb-2 text-gray-900" {...props} />,
-                          h3: ({node, ...props}) => <h3 className="text-[15px] font-bold mt-2 mb-1 text-gray-900" {...props} />,
-                          h4: ({node, ...props}) => <h4 className="text-[14px] font-bold mt-2 mb-1 text-gray-900" {...props} />,
-                          hr: ({node, ...props}) => <div className="h-4" {...props} />,
-                          p: ({node, ...props}) => <p className="mb-2 last:mb-0" {...props} />,
-                          ul: ({node, ...props}) => <ul className="list-disc pl-4 mb-2 space-y-1" {...props} />,
-                          ol: ({node, ...props}) => <ol className="list-decimal pl-4 mb-2 space-y-1" {...props} />,
-                          li: ({node, ...props}) => <li className="" {...props} />
+                          strong: ({ node, ...props }) => (
+                            <strong className="font-bold text-teal-700" {...props} />
+                          ),
+                          h1: ({ node, ...props }) => (
+                            <h1 className="text-lg font-bold mt-3 mb-2 text-gray-900" {...props} />
+                          ),
+                          h2: ({ node, ...props }) => (
+                            <h2 className="text-base font-bold mt-3 mb-2 text-gray-900" {...props} />
+                          ),
+                          h3: ({ node, ...props }) => (
+                            <h3 className="text-[15px] font-bold mt-2 mb-1 text-gray-900" {...props} />
+                          ),
+                          h4: ({ node, ...props }) => (
+                            <h4 className="text-[14px] font-bold mt-2 mb-1 text-gray-900" {...props} />
+                          ),
+                          hr: ({ node, ...props }) => <div className="h-4" {...props} />,
+                          p: ({ node, ...props }) => <p className="mb-2 last:mb-0" {...props} />,
+                          ul: ({ node, ...props }) => (
+                            <ul className="list-disc pl-4 mb-2 space-y-1" {...props} />
+                          ),
+                          ol: ({ node, ...props }) => (
+                            <ol className="list-decimal pl-4 mb-2 space-y-1" {...props} />
+                          ),
+                          li: ({ node, ...props }) => <li className="" {...props} />,
                         }}
                       >
                         {msg.text}
@@ -295,8 +459,8 @@ export default function ChatbotPage() {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Suggested Prompt Chips */}
-          <div className="px-4 sm:px-6 py-2.5 bg-gray-50/70 border-t border-gray-100 flex items-center gap-2 overflow-x-auto shrink-0">
+          {/* Suggested Prompt Chips (Mobile / Tablet quick bar) */}
+          <div className="px-4 sm:px-6 py-2.5 bg-gray-50/70 border-t border-gray-100 flex items-center gap-2 overflow-x-auto shrink-0 lg:hidden">
             <span className="text-[11px] font-semibold text-gray-400 whitespace-nowrap">
               Suggestions:
             </span>
@@ -337,7 +501,8 @@ export default function ChatbotPage() {
           </form>
         </div>
 
-        <p className="text-center text-[11px] text-gray-400 mt-2 mb-2 sm:mb-0 shrink-0">
+        {/* Small Screen Disclaimer */}
+        <p className="text-center text-[11px] text-gray-400 mt-2 mb-2 sm:mb-0 shrink-0 lg:hidden">
           Sherpa AI provides text explanations based on survey response data.
         </p>
       </main>
