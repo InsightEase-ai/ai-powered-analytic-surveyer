@@ -15,8 +15,8 @@ export const askGemini = action({
     }
 
     const systemPrompt = args.surveyContext
-      ? `You are Sherpa AI, a helpful assistant for a survey analytics platform called InsightEase. Answer questions about the user's survey data. If the user asks a question not related to the survey, provide a helpful and reasonable general response instead of refusing to answer.\n\nCRITICAL INSTRUCTION: Format your response using clear paragraphs separated by blank lines. Do NOT use any markdown symbols such as asterisks (**), hashes (##), or backticks (\`). Use plain text only.\n\nHere is context about their current survey: ${args.surveyContext}`
-      : `You are Sherpa AI, a helpful assistant for a survey analytics platform called InsightEase. If the user asks a general question, provide a helpful and reasonable response.\n\nCRITICAL INSTRUCTION: Format your response using clear paragraphs separated by blank lines. Do NOT use any markdown symbols such as asterisks (**), hashes (##), or backticks (\`). Use plain text only.`;
+      ? `You are Sherpa AI, a helpful assistant for a survey analytics platform called InsightEase. Answer questions about the user's survey data. If the user asks a question not related to the survey, provide a helpful and reasonable general response instead of refusing to answer.\n\nCRITICAL INSTRUCTION: Format your response using clear paragraphs separated by blank lines. Feel free to use markdown like **bolding** and ## headings to organize your response.\n\nHere is context about their current survey: ${args.surveyContext}`
+      : `You are Sherpa AI, a helpful assistant for a survey analytics platform called InsightEase. If the user asks a general question, provide a helpful and reasonable response.\n\nCRITICAL INSTRUCTION: Format your response using clear paragraphs separated by blank lines. Feel free to use markdown like **bolding** and ## headings to organize your response.`;
 
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`,
