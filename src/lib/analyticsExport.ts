@@ -559,7 +559,7 @@ function buildAnalyticsDocument(payload: AnalyticsExportPayload): Document {
           borders: {
             top: noBorder, bottom: noBorder,
             left: noBorder, right: noBorder,
-            insideH: noBorder, insideV: noBorder,
+            insideHorizontal: noBorder, insideVertical: noBorder,
           },
           rows: [
             new TableRow({
