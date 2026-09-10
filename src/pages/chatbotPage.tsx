@@ -70,7 +70,7 @@ export default function ChatbotPage() {
 
       // long_text (open-ended) — include actual respondent answers
       const sampleAnswers = answered
-        .slice(0, 20)
+        .slice(0, 100)
         .map((r) => `"${String(r.answers[q.id]).trim()}"`)
         .join("; ");
       return `- "${q.title}" (${q.type}, ${answered.length} answers): ${sampleAnswers}`;
@@ -133,7 +133,8 @@ export default function ChatbotPage() {
         }),
       };
       setMessages((prev) => [...prev, botMessage]);
-    } catch {
+    } catch (error) {
+      console.error("Chatbot error:", error);
       const errorMessage: Message = {
         id: `bot-error-${Date.now()}`,
         sender: "bot",
@@ -242,7 +243,7 @@ export default function ChatbotPage() {
                   className={`max-w-xl space-y-1 ${msg.sender === "user" ? "text-right" : "text-left"}`}
                 >
                   <div
-                    className={`inline-block px-4 py-3 rounded-2xl text-xs sm:text-sm leading-relaxed ${
+                    className={`inline-block px-4 py-3 rounded-2xl text-xs sm:text-sm leading-relaxed whitespace-pre-wrap ${
                       msg.sender === "user"
                         ? "bg-[#0B192C] text-white rounded-tr-none shadow-sm"
                         : "bg-white text-gray-800 border border-gray-100 shadow-sm rounded-tl-none"
