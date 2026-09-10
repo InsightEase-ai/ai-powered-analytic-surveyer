@@ -3,6 +3,7 @@ import { useQuery, useAction } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import Header from "../componet/header";
 import { Send, Bot, User, Sparkles, ChevronDown } from "lucide-react";
+import ReactMarkdown from "react-markdown";
 
 interface Message {
   id: string;
@@ -243,13 +244,32 @@ export default function ChatbotPage() {
                   className={`max-w-xl space-y-1 ${msg.sender === "user" ? "text-right" : "text-left"}`}
                 >
                   <div
-                    className={`inline-block px-4 py-3 rounded-2xl text-xs sm:text-sm leading-relaxed whitespace-pre-wrap ${
+                    className={`inline-block px-4 py-3 rounded-2xl text-xs sm:text-sm leading-relaxed ${
                       msg.sender === "user"
-                        ? "bg-[#0B192C] text-white rounded-tr-none shadow-sm"
+                        ? "bg-[#0B192C] text-white rounded-tr-none shadow-sm whitespace-pre-wrap"
                         : "bg-white text-gray-800 border border-gray-100 shadow-sm rounded-tl-none"
                     }`}
                   >
-                    {msg.text}
+                    {msg.sender === "bot" ? (
+                      <ReactMarkdown
+                        components={{
+                          strong: ({node, ...props}) => <strong className="font-bold text-teal-700" {...props} />,
+                          h1: ({node, ...props}) => <h1 className="text-lg font-bold mt-3 mb-2 text-gray-900" {...props} />,
+                          h2: ({node, ...props}) => <h2 className="text-base font-bold mt-3 mb-2 text-gray-900" {...props} />,
+                          h3: ({node, ...props}) => <h3 className="text-[15px] font-bold mt-2 mb-1 text-gray-900" {...props} />,
+                          h4: ({node, ...props}) => <h4 className="text-[14px] font-bold mt-2 mb-1 text-gray-900" {...props} />,
+                          hr: ({node, ...props}) => <div className="h-4" {...props} />,
+                          p: ({node, ...props}) => <p className="mb-2 last:mb-0" {...props} />,
+                          ul: ({node, ...props}) => <ul className="list-disc pl-4 mb-2 space-y-1" {...props} />,
+                          ol: ({node, ...props}) => <ol className="list-decimal pl-4 mb-2 space-y-1" {...props} />,
+                          li: ({node, ...props}) => <li className="" {...props} />
+                        }}
+                      >
+                        {msg.text}
+                      </ReactMarkdown>
+                    ) : (
+                      msg.text
+                    )}
                   </div>
                   <p className="text-[10px] text-gray-400 px-1">
                     {msg.timestamp}
