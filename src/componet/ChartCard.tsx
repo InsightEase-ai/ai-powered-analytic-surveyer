@@ -1,5 +1,4 @@
 import React from "react";
-import { DownloadMenu } from "./DownloadMenu";
 
 interface ChartCardProps {
   title: string;
@@ -26,10 +25,11 @@ export const ChartCard: React.FC<ChartCardProps> = ({
               <p className="text-xs text-gray-400 mt-0.5">{subtitle}</p>
             )}
           </div>
-          <div className="flex items-center gap-1 shrink-0">
-            {action}
-            <DownloadMenu chartTitle={title} />
-          </div>
+          {action && (
+            <div className="flex items-center gap-1 shrink-0">
+              {action}
+            </div>
+          )}
         </div>
         <div className="w-full">{children}</div>
       </div>

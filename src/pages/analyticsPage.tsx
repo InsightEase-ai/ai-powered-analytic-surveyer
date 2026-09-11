@@ -177,57 +177,63 @@ export default function AnalyticsPage() {
       date: "Date",
     };
 
-    // Dynamic Bar Charts — one per question, regardless of type.
-    const barCharts = questions.map((q, idx: number) => {
-      const { entries, answeredCount } = getAnswerBreakdown(q);
+    // Dynamic Bar Charts — excluding open-ended long_text questions
+    const barCharts = questions
+      .filter((q) => q.type !== "long_text")
+      .map((q) => {
+        const originalIdx = questions.indexOf(q);
+        const { entries, answeredCount } = getAnswerBreakdown(q);
 
-      const data = entries.map(([option, count]) => ({
-        option,
-        count,
-        percentage:
-          answeredCount > 0 ? Math.round((count / answeredCount) * 100) : 0,
-      }));
+        const data = entries.map(([option, count]) => ({
+          option,
+          count,
+          percentage:
+            answeredCount > 0 ? Math.round((count / answeredCount) * 100) : 0,
+        }));
 
-      const topOption = [...data].sort((a, b) => b.count - a.count)[0];
-      const interpretation =
-        topOption && topOption.count > 0
-          ? `"${topOption.option}" is currently the top selected response (${topOption.percentage}% of answered questions).`
-          : "Responses recorded for this question are currently being aggregated.";
+        const topOption = [...data].sort((a, b) => b.count - a.count)[0];
+        const interpretation =
+          topOption && topOption.count > 0
+            ? `"${topOption.option}" is currently the top selected response (${topOption.percentage}% of answered questions).`
+            : "Responses recorded for this question are currently being aggregated.";
 
-      return {
-        id: `real_bar_${q.id || idx}`,
-        questionTitle: `Q${idx + 1}: ${q.title}`,
-        questionType: questionTypeLabels[q.type] ?? q.type,
-        totalAnswers: answeredCount,
-        interpretation,
-        data,
-      };
-    });
+        return {
+          id: `real_bar_${q.id || originalIdx}`,
+          questionTitle: `Q${originalIdx + 1}: ${q.title}`,
+          questionType: questionTypeLabels[q.type] ?? q.type,
+          totalAnswers: answeredCount,
+          interpretation,
+          data,
+        };
+      });
 
-    // Dynamic Pie Charts — one per question, regardless of type.
-    const pieCharts = questions.map((q, idx: number) => {
-      const { entries, answeredCount } = getAnswerBreakdown(q);
+    // Dynamic Pie Charts — excluding open-ended long_text questions
+    const pieCharts = questions
+      .filter((q) => q.type !== "long_text")
+      .map((q) => {
+        const originalIdx = questions.indexOf(q);
+        const { entries, answeredCount } = getAnswerBreakdown(q);
 
-      const data = entries.map(([name, value], colorIdx) => ({
-        name,
-        value,
-        color: pieChartColors[colorIdx % pieChartColors.length],
-      }));
+        const data = entries.map(([name, value], colorIdx) => ({
+          name,
+          value,
+          color: pieChartColors[colorIdx % pieChartColors.length],
+        }));
 
-      const topEntry = [...data].sort((a, b) => b.value - a.value)[0];
-      const interpretation =
-        topEntry && topEntry.value > 0
-          ? `"${topEntry.name}" is the most common answer (${answeredCount > 0 ? Math.round((topEntry.value / answeredCount) * 100) : 0}% of answered responses).`
-          : "Responses recorded for this question are currently being aggregated.";
+        const topEntry = [...data].sort((a, b) => b.value - a.value)[0];
+        const interpretation =
+          topEntry && topEntry.value > 0
+            ? `"${topEntry.name}" is the most common answer (${answeredCount > 0 ? Math.round((topEntry.value / answeredCount) * 100) : 0}% of answered responses).`
+            : "Responses recorded for this question are currently being aggregated.";
 
-      return {
-        id: `real_pie_${q.id || idx}`,
-        questionTitle: `Q${idx + 1}: ${q.title}`,
-        totalAnswers: answeredCount,
-        interpretation,
-        data,
-      };
-    });
+        return {
+          id: `real_pie_${q.id || originalIdx}`,
+          questionTitle: `Q${originalIdx + 1}: ${q.title}`,
+          totalAnswers: answeredCount,
+          interpretation,
+          data,
+        };
+      });
 
     // Dynamic Line Chart: daily response volume
     const dailyCounts: Record<string, number> = {};
@@ -316,43 +322,44 @@ export default function AnalyticsPage() {
       });
     }
 
-    // Dynamic Line Chart: one per question, tracking that question's daily
-    // answer volume. This is what makes every question generate a line
-    // chart too, alongside the two survey-level overview charts above.
-    questions.forEach((q, idx: number) => {
-      const perQuestionDailyCounts: Record<string, number> = {};
-      realResponses.forEach((resp) => {
-        const ans = resp.answers[q.id];
-        if (ans === undefined || ans === "") return;
-        const d = new Date(resp._creationTime);
-        const sortKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-        perQuestionDailyCounts[sortKey] =
-          (perQuestionDailyCounts[sortKey] || 0) + 1;
-      });
-
-      const perQuestionData = Object.entries(perQuestionDailyCounts)
-        .sort(([a], [b]) => a.localeCompare(b))
-        .map(([sortKey, count]) => {
-          const [year, month, day] = sortKey.split("-").map(Number);
-          const label = new Date(year, month - 1, day).toLocaleDateString(
-            "en-US",
-            { month: "short", day: "2-digit" },
-          );
-          return { date: label, responses: count, completionRate: 0 };
+    // Dynamic Line Chart: one per chartable question (excluding long_text), tracking that question's daily answer volume
+    questions
+      .filter((q) => q.type !== "long_text")
+      .forEach((q) => {
+        const originalIdx = questions.indexOf(q);
+        const perQuestionDailyCounts: Record<string, number> = {};
+        realResponses.forEach((resp) => {
+          const ans = resp.answers[q.id];
+          if (ans === undefined || ans === "") return;
+          const d = new Date(resp._creationTime);
+          const sortKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+          perQuestionDailyCounts[sortKey] =
+            (perQuestionDailyCounts[sortKey] || 0) + 1;
         });
 
-      if (perQuestionData.length === 0) return;
+        const perQuestionData = Object.entries(perQuestionDailyCounts)
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([sortKey, count]) => {
+            const [year, month, day] = sortKey.split("-").map(Number);
+            const label = new Date(year, month - 1, day).toLocaleDateString(
+              "en-US",
+              { month: "short", day: "2-digit" },
+            );
+            return { date: label, responses: count, completionRate: 0 };
+          });
 
-      lineCharts.push({
-        id: `real_line_q_${q.id || idx}`,
-        chartTitle: `Q${idx + 1}: ${q.title} — Daily Answers`,
-        interpretation:
-          perQuestionData.length > 1
-            ? `This question received answers across ${perQuestionData.length} days, peaking at ${Math.max(...perQuestionData.map((d) => d.responses))} answers in a single day.`
-            : "Not enough days of data yet to identify a trend for this question.",
-        data: perQuestionData,
+        if (perQuestionData.length === 0) return;
+
+        lineCharts.push({
+          id: `real_line_q_${q.id || originalIdx}`,
+          chartTitle: `Q${originalIdx + 1}: ${q.title} — Daily Answers`,
+          interpretation:
+            perQuestionData.length > 1
+              ? `This question received answers across ${perQuestionData.length} days, peaking at ${Math.max(...perQuestionData.map((d) => d.responses))} answers in a single day.`
+              : "Not enough days of data yet to identify a trend for this question.",
+          data: perQuestionData,
+        });
       });
-    });
 
     // Dynamic Response Table generated from real submissions
     const responseTable = realResponses.slice(0, 15).map((resp) => {
